@@ -147,7 +147,7 @@ Exit codes: `0` ok · `2` usage or option error · `3` invalid input · `1` inte
 
 ## MCP server
 
-The server exposes every tool as `ptext_<id>` (for example `ptext_extract_emails`), plus `ptext_suggest` (profile and suggestions for a text) and `ptext_catalog` (field meanings and input cards). Each tool description includes `Use when: …` and `Not for: …` so the client's model picks the right tool.
+The server exposes every tool as `ptext_<id>` (for example `ptext_extract_emails`), plus `ptext_suggest` (profile and suggestions for a text) and `ptext_catalog` (field meanings and input cards). Each tool description includes `Use when: …` and `Not for: …` so the client's model can use the user's requested operation as well as the input. `ptext_suggest` checks input shape only; it cannot infer the user's goal.
 
 ### Local (stdio)
 
@@ -209,11 +209,12 @@ Each description comes from `modelDescription(tool)`: what the tool does, `Use w
 
 ```
 input → profileInput()            counts, ratios and flags only (PROFILE_FIELDS describes each one)
-      → each tool's suggest()     local, deterministic
-      → route(input, { router })  optional: an AI re-ranks from the profile and the catalog
+      → compatibility gate       code keeps only eligible tools
+      → each tool's suggest()     local scores within that set
+      → route(input, { router })  optional: an AI ranks only eligible tools
 ```
 
-Every tool carries an **input card**: `accepts` (what the input looks like), `signals` (profile fields that point to it), `avoid` (a look-alike and the tool to use instead) and `examples`. Rankers never see the raw text. They get the profile and the input cards.
+Every tool carries an **input card**: `accepts` (what the input looks like), `signals` (profile fields that point to it), `avoid` (a look-alike and the tool to use instead) and `examples`. Rankers never see the raw text. Without an explicit intent, they get only the profile and input cards, so their output is a compatibility suggestion, not an instruction to run a tool automatically.
 
 ```ts
 import { route, llmRouter } from '@ptext/core';
@@ -221,11 +222,14 @@ import { route, llmRouter } from '@ptext/core';
 // Any model: send prompt.system + prompt.user, return the reply text.
 const ai = llmRouter(async (prompt, signal) => callYourModel(prompt.system, prompt.user, signal));
 const { suggestions, source, issues } = await route(text, { router: ai, timeoutMs: 1500 });
+// If the app knows the goal, pass controlled labels rather than free-form user text:
+const domains = await route(text, { router: ai, intent: { operation: 'extract', target: 'domains' } });
 ```
 
-- The router is asked even when local rules find nothing, and it may return any catalog tool.
-- Malformed entries are dropped and listed in `issues`. A timeout, an error, or a reply that is not a ranking falls back to the local result, so routing never blocks.
-- Generative models use `llmRouter(complete)` with the shared `rankPrompt()`, `rankResponseSchema()` and `parseRankResponse()`. Decision models such as Jev ([TypeSafe System One](https://typesafe.ai)) use `jevRouter(post)`. In both cases your code makes the HTTP call and holds the key.
+- Code computes `eligible` from the profile and optional intent before calling the router. If none qualify, the model is not called. The model may choose any eligible tool, including one without a local score.
+- `intent` is optional and accepts only fixed operation and target labels. It is sent to the ranker without the raw input. A fully specified intent also limits suggestions and local fallback to the requested tool; the input profile still checks whether that tool fits.
+- A valid empty ranking means no tool fits and stays empty. Profile-incompatible or malformed entries are dropped and listed in `issues`. A timeout, an error, or a reply that is not a ranking falls back to the local result, so routing never blocks.
+- Generative models use `llmRouter(complete)` with the shared `rankPrompt()`, `rankResponseSchema()` and `parseRankResponse()`; pass `eligible` to `rankResponseSchema()` to narrow a structured-output enum. Decision models such as Jev ([TypeSafe System One](https://typesafe.ai)) use `jevRouter(post)`, whose question contains only eligible tools. In both cases your code makes the HTTP call and holds the key.
 - Backends in other languages can fetch the same catalog and prompt with `ptext catalog` / `ptext prompt` or from the Worker at `GET /api/catalog` and `GET /api/prompt`.
 
 ## PHP / Laravel / other languages

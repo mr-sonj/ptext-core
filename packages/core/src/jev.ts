@@ -58,7 +58,7 @@ export function jevQuestions(catalog: RouterCatalog = routerCatalog()): Record<s
         instructions: {
           question: 'Which PText tool should process this text? You see only its profile (counts and flags measured on the text), never the text itself.',
           focus:
-            'Read state.profile with the meanings in state.fields when present. state.local_rules are guesses from fixed rules and can be wrong. Prefer the tool whose profile signals match; pick none when no tool fits.',
+            'Choose only from the criteria supplied for this request; code has already filtered incompatible tools. Read state.profile with the meanings in state.fields when present. state.local_rules are guesses from fixed rules and can be wrong. If state.intent is present, match its operation and target; otherwise the user goal is unknown and you rank input compatibility only. Pick none when no remaining tool fits.',
         },
         criteria: { ...Object.fromEntries(catalog.tools.map((t) => [t.id, criterion(t)])), [NONE]: 'No PText tool fits this input: plain prose, a single word, or data none of the tools handle.' },
       },
@@ -68,12 +68,16 @@ export function jevQuestions(catalog: RouterCatalog = routerCatalog()): Record<s
   return q;
 }
 
-/** The request body for one profile. Counts and flags only: the text never reaches it. */
+/** The request body for one profile, with optional controlled intent labels. The text never reaches it. */
 export function jevRequest(request: RouterRequest, opts: JevOptions = {}): JevBody {
-  const state: Record<string, unknown> = { profile: request.profile };
+  const eligible = request.eligible ?? request.catalog.tools.map((t) => t.id);
+  const state: Record<string, unknown> = { profile: request.profile, eligible_tools: eligible };
+  if (request.intent) state.intent = request.intent;
   if (opts.candidates !== false) state.local_rules = request.candidates.map(({ tool, score }) => ({ tool, score }));
   if (opts.fields !== false) state.fields = request.catalog.fields;
-  return { model: opts.model ?? JEV_MODEL, state, questions: jevQuestions(request.catalog) };
+  const base = jevQuestions(request.catalog);
+  const criteria = Object.fromEntries([...eligible.filter((id) => id in base[QUESTION]!.criteria).map((id) => [id, base[QUESTION]!.criteria[id]!]), [NONE, base[QUESTION]!.criteria[NONE]!]]);
+  return { model: opts.model ?? JEV_MODEL, state, questions: { [QUESTION]: { ...base[QUESTION]!, criteria } } };
 }
 
 interface JevAnswer {
@@ -93,9 +97,11 @@ export function jevSuggestions(answers: unknown, request: RouterRequest, min = 0
   }
   const probs: Record<string, unknown> =
     a.probabilities && typeof a.probabilities === 'object' ? (a.probabilities as Record<string, unknown>) : { [a.choice as string]: a.confidence ?? 0 };
+  const strongestTool = Math.max(0, ...Object.entries(probs).filter(([id, p]) => id !== NONE && (!request.eligible || request.eligible.includes(id)) && typeof p === 'number' && Number.isFinite(p)).map(([, p]) => p as number));
+  if (a.choice === NONE || (typeof probs[NONE] === 'number' && probs[NONE] >= strongestTool)) return [];
   const local = new Map(request.candidates.map((s) => [s.tool, s]));
   return Object.entries(probs)
-    .filter((e): e is [string, number] => e[0] !== NONE && typeof e[1] === 'number' && e[1] >= min)
+    .filter((e): e is [string, number] => e[0] !== NONE && (!request.eligible || request.eligible.includes(e[0])) && typeof e[1] === 'number' && e[1] >= min)
     .sort((x, y) => y[1] - x[1])
     .map(([tool, p]) => {
       const l = local.get(tool);

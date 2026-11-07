@@ -206,6 +206,26 @@ describe('profiler (local suggestions)', () => {
 });
 
 describe('router fallback', () => {
+  it('preserves an explicit remote abstention instead of reviving local guesses', async () => {
+    const r = await route('apple\nbanana\ncherry', { router: { rank: async () => [] } });
+    expect(r).toEqual({ profile: profileInput('apple\nbanana\ncherry'), suggestions: [], source: 'remote' });
+  });
+
+  it('rejects remote picks contradicted by the input profile', async () => {
+    const inputs: [string, string, string][] = [
+      ['Hello, world', 'split-columns', 'not delimited data'],
+      ['0123456789abcdef0123456789abcdef', 'base64', 'not readable Base64'],
+      ['{"a":1}\n{"b":2}', 'json-format', 'JSON Lines'],
+    ];
+    for (const [input, tool, issue] of inputs) {
+      let called = false;
+      const r = await route(input, { router: { rank: async () => ((called = true), [{ tool, score: 0.99, reason: 'model guess' }]) } });
+      expect(r.suggestions.map((s) => s.tool), input).not.toContain(tool);
+      if (called) expect(r.issues?.join(' '), input).toContain(issue);
+      else expect(r).toMatchObject({ source: 'local', suggestions: [] });
+    }
+  });
+
   it('falls back to local on remote error', async () => {
     const r = await route('a@x.com b@y.com', { router: { rank: async () => { throw new Error('down'); } } });
     expect(r.source).toBe('local');
@@ -242,6 +262,15 @@ describe('router fallback', () => {
 });
 
 describe('router contract', () => {
+  it('keeps every locally fitting tool eligible on its sample inputs', async () => {
+    for (const t of TOOLS.filter((x) => x.suggest)) {
+      for (const input of t.input.examples) {
+        let req: RouterRequest | undefined;
+        await route(input, { router: { rank: async (q) => ((req = q), []) } });
+        expect(req?.eligible, `${t.id}: ${input}`).toContain(t.id);
+      }
+    }
+  });
   const capture = async (input: string, answer: unknown = []) => {
     let req: RouterRequest | undefined;
     const r = await route(input, { router: { rank: async (q) => ((req = q), answer as any) } });
@@ -255,13 +284,54 @@ describe('router contract', () => {
     expect(req!.catalog.tools.map((t) => t.id)).toEqual(listTools().map((t) => t.id));
     expect(Object.keys(req!.catalog.fields).sort()).toEqual(Object.keys(req!.profile).sort());
     expect(req!.candidates.map((s) => s.tool)).toContain('split-columns');
+    expect(req!.eligible).toContain('split-columns');
     expect(JSON.stringify(req)).not.toContain(secret);
     expect(JSON.stringify(req)).not.toContain('leak-check');
   });
+  it('passes a bounded intent without sending raw text', async () => {
+    let req: RouterRequest | undefined;
+    const input = 'visit https://example.com/a';
+    await route(input, { intent: { operation: 'extract', target: 'domains' }, router: { rank: async (q) => ((req = q), []) } });
+    expect(req!.intent).toEqual({ operation: 'extract', target: 'domains' });
+    expect(req!.eligible).toEqual(['extract-domains']);
+    expect(JSON.stringify(req)).not.toContain(input);
+    await expect(route(input, { intent: { operation: 'extract', target: input } as any, router: { rank: async () => [] } })).rejects.toMatchObject({ code: 'INVALID_OPTION' });
+  });
+  it('keeps suggestions aligned with a fully specified intent', async () => {
+    const input = 'visit https://shop.example.com/a';
+    const intent = { operation: 'extract', target: 'domains' } as const;
+    let req: RouterRequest | undefined;
+    const r = await route(input, { intent, router: { rank: async (q) => ((req = q), [
+      { tool: 'extract-urls', score: 0.99, reason: 'wrong target' },
+      { tool: 'extract-domains', score: 0.7, reason: 'requested target' },
+    ]) } });
+    expect(req!.candidates.map((s) => s.tool)).toEqual(['extract-domains']);
+    expect(r.suggestions.map((s) => s.tool)).toEqual(['extract-domains']);
+    expect(r.issues?.join(' ')).toContain('conflicts with requested intent');
+    const fallback = await route(input, { intent, router: { rank: async () => [{ tool: 'extract-urls', score: 0.99, reason: 'wrong target' }] } });
+    expect(fallback).toMatchObject({ source: 'local', suggestions: [{ tool: 'extract-domains' }] });
+  });
+  it('lets an explicit intent override a shape-only veto', async () => {
+    const r = await route('plain text', {
+      intent: { operation: 'encode', target: 'base64' },
+      router: { rank: async () => [{ tool: 'base64', score: 0.9, reason: 'encode requested' }] },
+    });
+    expect(r).toMatchObject({ source: 'remote', suggestions: [{ tool: 'base64', options: { direction: 'encode' } }] });
+  });
+  it('does not treat JSON Lines as one document even with a formatting intent', async () => {
+    let called = false;
+    const r = await route('{"a":1}\n{"b":2}', {
+      intent: { operation: 'format', target: 'json' },
+      router: { rank: async () => ((called = true), [{ tool: 'json-format', score: 0.9, reason: 'format requested' }]) },
+    });
+    expect(r.suggestions.map((s) => s.tool)).not.toContain('json-format');
+    expect(called).toBe(false);
+  });
   it('asks the router when local finds nothing, and accepts a tool outside the candidates', async () => {
-    const { r, req } = await capture('hello', [{ tool: 'filter-lines', score: 0.7, reason: 'keep matching lines', options: { mode: 'contains' } }]);
+    const { r, req } = await capture('q=a%20b', [{ tool: 'url-encode', score: 0.7, reason: 'one percent sequence' }]);
     expect(req!.candidates).toEqual([]);
-    expect(r).toMatchObject({ source: 'remote', suggestions: [{ tool: 'filter-lines', score: 0.7, options: { mode: 'contains' } }] });
+    expect(req!.eligible).toContain('url-encode');
+    expect(r).toMatchObject({ source: 'remote', suggestions: [{ tool: 'url-encode', score: 0.7 }] });
     expect(r.issues).toBeUndefined();
   });
   it('does not ask the router for empty input', async () => {
@@ -269,30 +339,35 @@ describe('router contract', () => {
     expect(req).toBeUndefined();
     expect(r).toEqual({ profile: profileInput(''), suggestions: [], source: 'local' });
   });
+  it('does not ask the router when code finds no eligible tool', async () => {
+    let called = false;
+    const r = await route('hello', { router: { rank: async () => ((called = true), []) } });
+    expect(called).toBe(false);
+    expect(r).toMatchObject({ source: 'local', suggestions: [] });
+  });
   it('keeps only well-formed remote suggestions and reports what it dropped or changed', async () => {
-    const { r } = await capture('a@x.com', [
+    const { r } = await capture('a@x.com,b@y.com\nc@z.com,d@w.com', [
       { tool: 'extract-emails', score: 7, reason: 'x'.repeat(500) },
       { tool: 'extract-emails', score: 0.5, reason: 'again' },
       { tool: 'base64', score: 'high', reason: 'bad score' },
-      { tool: 'json-format', score: 0.4, reason: 'bad options', options: { nope: 1 } },
+      { tool: 'extract-domains', score: 0.4, reason: 'bad options', options: { nope: 1 } },
       { tool: 'select-columns', score: 0.6, reason: 'user picks columns', options: { delimiter: 'comma' } },
       { tool: 'clean-lines', score: 0.3 },
       null,
       { tool: 'rm-rf', score: 1, reason: 'x' },
     ]);
     expect(r.source).toBe('remote');
-    expect(r.suggestions.map((s) => [s.tool, s.score])).toEqual([['extract-emails', 1], ['select-columns', 0.6], ['json-format', 0.4], ['clean-lines', 0.3]]);
+    expect(r.suggestions.map((s) => [s.tool, s.score])).toEqual([['extract-emails', 1], ['select-columns', 0.6], ['extract-domains', 0.4]]);
     expect(r.suggestions[0]!.reason).toHaveLength(200);
     expect(r.suggestions[1]!.options).toEqual({ delimiter: 'comma' });
     expect(r.suggestions[2]!.options).toBeUndefined();
-    expect(r.suggestions[3]!.reason).toBe('');
     expect(r.issues).toEqual([
       'extract-emails: score 7 clamped to 1',
       'extract-emails: reason cut to 200 chars',
       'extract-emails: listed twice, kept the first',
       'base64: score is not a finite number',
-      'json-format: options dropped (Unknown option "nope" for "json-format")',
-      'clean-lines: reason is not a string',
+      'extract-domains: options dropped (Unknown option "nope" for "extract-domains")',
+      'clean-lines: no detected cleanup signal',
       'entry 6: not an object',
       'rm-rf: unknown tool',
     ]);
@@ -326,17 +401,21 @@ describe('any LLM as the router', () => {
   it('the user message is the profile + candidates (tool, score) as JSON, and nothing reaches the prompt from the text', async () => {
     const req = await request(`user|${secret}|zq9@leak-check.test\nuser|x|b@leak-check.test`);
     const p = rankPrompt(req.catalog, req);
-    expect(JSON.parse(p.user!)).toEqual({ profile: req.profile, candidates: req.candidates.map(({ tool, score }) => ({ tool, score })) });
+    expect(JSON.parse(p.user!)).toEqual({ profile: req.profile, eligible: req.eligible, candidates: req.candidates.map(({ tool, score }) => ({ tool, score })) });
     expect(p.version).toBe(routerCatalog().version);
     for (const part of [p.system, p.user!]) {
       expect(part).not.toContain(secret);
       expect(part).not.toContain('leak-check');
     }
+    const withIntent = rankPrompt(req.catalog, { ...req, intent: { operation: 'extract', target: 'domains' } });
+    expect(JSON.parse(withIntent.user!).intent).toEqual({ operation: 'extract', target: 'domains' });
   });
   it('the response schema only allows catalog tools', () => {
     const items = (rankResponseSchema().properties.suggestions as any).items;
     expect(items.properties.tool.enum).toEqual(listTools().map((t) => t.id));
     expect(items.required).toEqual(['tool', 'score', 'reason']);
+    const narrow = (rankResponseSchema(routerCatalog(), ['extract-domains']).properties.suggestions as any).items;
+    expect(narrow.properties.tool.enum).toEqual(['extract-domains']);
   });
   it('parses what models really send back', () => {
     const want = [{ tool: 'extract-ip', score: 0.9, reason: 'r' }];
@@ -352,7 +431,7 @@ describe('any LLM as the router', () => {
       seen = prompt;
       return '```json\n{"suggestions":[{"tool":"filter-lines","score":0.8,"reason":"log lines"}]}\n```';
     });
-    const r = await route('2026-11-07 10:00:01 ERROR db\n2026-11-07 10:00:02 INFO ok', { router });
+    const r = await route('2026-11-07 10:00:01 ERROR db\n2026-11-07 10:00:02 INFO ok', { intent: { operation: 'filter', target: 'lines' }, router });
     expect(r).toMatchObject({ source: 'remote', suggestions: [{ tool: 'filter-lines', score: 0.8 }] });
     expect(seen!.system).toBe(rankPrompt(routerCatalog()).system);
     expect(JSON.parse(seen!.user!).profile).toEqual(r.profile);

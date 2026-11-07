@@ -11,16 +11,17 @@ export interface RankPrompt {
   version: string;
   /** Static per catalog: rules, every profile field and every tool's input card. */
   system: string;
-  /** JSON of `{ profile, candidates: [{ tool, score }] }`. Absent when only the system prompt was asked for. */
+  /** JSON of `{ profile, eligible, candidates: [{ tool, score }], intent? }`. Absent when only the system prompt was asked for. */
   user?: string;
 }
 
-const RULES = `You pick PText tools for a text you cannot see. PText tools are deterministic code that extract, clean, split, convert, encode and format text. You get only the text's profile (counts and flags, defined below) and the candidates proposed by local rules (tool and score). Judge from the profile which tools fit and how well.
+const RULES = `You suggest PText tools for a text you cannot see. PText tools are deterministic code that extract, clean, split, convert, encode and format text. You get the text's profile (counts and flags, defined below), an eligible tool list filtered by code, the candidates proposed by local rules (tool and score), and sometimes a controlled intent (operation and target). When intent is absent, the user's goal is unknown. Judge which eligible tools fit the input and any supplied intent; do not guess an operation from punctuation alone.
 
 Rules:
-- Pick from every tool listed below, not only the candidates. Leave out candidates that do not fit.
-- score is 0 to 1: how likely this tool is what the user wants for this input.
-- options: only options listed for that tool, and only when the profile supports them. Never invent a required option; the user gives it.
+- Pick only from the eligible tool ids in the user message. Candidates are local guesses within that list, not the full choice set. Return an empty list when no eligible tool fits the goal.
+- score is 0 to 1: how well the input and any supplied intent fit this tool.
+- A false profile signal rules out a tool that needs it unless intent explicitly requests an operation such as encoding plain text. In particular, JSON Lines is not one JSON document; a hash or UUID that does not decode to readable text is not a Base64 text blob to decode; and punctuation in prose does not make a table.
+- options: only options listed for that tool, and only when the profile or intent supports them. Never invent a required option; the user gives it.
 - Reply with JSON only, no prose: {"suggestions":[{"tool":"<id>","score":0.9,"reason":"<one short sentence>","options":{}}]}. Best first, at most 5. Reply {"suggestions":[]} when nothing fits.`;
 
 function renderOption(name: string, p: OptionSchema, required: boolean): string {
@@ -53,17 +54,17 @@ function renderSystem(catalog: RouterCatalog): string {
 const systems = new Map<string, string>();
 
 /** The ranking prompt for `catalog`; with a request, also the user message for that profile. */
-export function rankPrompt(catalog: RouterCatalog, request?: Pick<RouterRequest, 'profile' | 'candidates'>): RankPrompt {
+export function rankPrompt(catalog: RouterCatalog, request?: Pick<RouterRequest, 'profile' | 'eligible' | 'candidates' | 'intent'>): RankPrompt {
   let system = systems.get(catalog.version);
   if (system === undefined) systems.set(catalog.version, (system = renderSystem(catalog)));
   const prompt: RankPrompt = { version: catalog.version, system };
-  // Tool and score only: the same message a backend that strips reasons and options would send.
-  if (request) prompt.user = JSON.stringify({ profile: request.profile, candidates: request.candidates.map(({ tool, score }) => ({ tool, score })) });
+  // Candidate tool and score only; intent is a separate allowlisted hint.
+  if (request) prompt.user = JSON.stringify({ profile: request.profile, eligible: request.eligible ?? catalog.tools.map((t) => t.id), candidates: request.candidates.map(({ tool, score }) => ({ tool, score })), ...(request.intent ? { intent: request.intent } : {}) });
   return prompt;
 }
 
 /** JSON Schema of the reply, for models with structured output (OpenAI response_format, Gemini responseSchema, ...). */
-export function rankResponseSchema(catalog: RouterCatalog = routerCatalog()) {
+export function rankResponseSchema(catalog: RouterCatalog = routerCatalog(), eligible?: readonly string[]) {
   return {
     type: 'object' as const,
     properties: {
@@ -73,7 +74,7 @@ export function rankResponseSchema(catalog: RouterCatalog = routerCatalog()) {
         items: {
           type: 'object',
           properties: {
-            tool: { type: 'string', enum: catalog.tools.map((t) => t.id) },
+            tool: { type: 'string', enum: eligible ? catalog.tools.map((t) => t.id).filter((id) => eligible.includes(id)) : catalog.tools.map((t) => t.id) },
             score: { type: 'number', minimum: 0, maximum: 1 },
             reason: { type: 'string', maxLength: 200 },
             options: { type: 'object', description: 'Only options listed for that tool.' },

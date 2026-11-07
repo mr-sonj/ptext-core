@@ -55,7 +55,7 @@ export function createPTextServer(opts: PTextServerOptions = {}): Server {
     {
       capabilities: { tools: {} },
       instructions:
-        'PText: deterministic text tools. Each tool description says when to use it. Call ptext_suggest with a sample when unsure which tool fits, then call the tool. ptext_catalog explains every profile field and the signals that point to each tool. Results are computed by code, not by an LLM.',
+        'PText: deterministic text tools. Choose the tool from the user\'s requested operation and the input. ptext_suggest checks input shape only; its ranking does not know the user\'s goal, and some suggestions need required options from the user. ptext_catalog explains every profile field and input card. Results are computed by code, not by an LLM.',
       ...(opts.jsonSchemaValidator ? { jsonSchemaValidator: opts.jsonSchemaValidator } : {}),
     },
   );
@@ -64,7 +64,7 @@ export function createPTextServer(opts: PTextServerOptions = {}): Server {
     tools: [
       {
         name: SUGGEST,
-        description: 'Profile a text sample locally and suggest the best PText tools (with options). Raw text never leaves this process.',
+        description: 'Profile a text sample locally and suggest tools compatible with its shape. This does not infer the user\'s goal; required options may still need to be supplied. Raw text never leaves this process.',
         inputSchema: {
           type: 'object',
           properties: {
