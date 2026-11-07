@@ -2,6 +2,17 @@
 
 All notable changes are listed here. Each entry is written from the Conventional Commit messages of that release (see [Releases](README.md#releases)). Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.4.0] - 2026-11-07
+
+### Features
+
+- **cli:** add --help with commands, examples and tool ids (1fb67c8)
+
+### Other
+
+- build: push main with release.mjs ship, releasing only for feat, fix, perf, revert or breaking (6313591)
+- ci: run pnpm/action-setup v6, which targets Node.js 24 (6e06d5c)
+
 ## [0.3.0] - 2026-11-07
 
 ### Features

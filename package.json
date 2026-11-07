@@ -1,6 +1,6 @@
 {
   "name": "ptext-monorepo",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "description": "PText: paste text, get a useful result. Deterministic text tools (remove duplicate lines, CSV to JSON, extract emails, JSON formatter, clean text) as a library, CLI and MCP server.",

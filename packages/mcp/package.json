@@ -1,6 +1,6 @@
 {
   "name": "@ptext/mcp",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "MCP server with deterministic text tools for Claude, Cursor, Codex and other AI assistants: remove duplicate lines, CSV to JSON, extract emails, JSON format, clean text. stdio and Streamable HTTP (Cloudflare Workers, Deno, Bun).",
   "type": "module",
   "engines": { "node": ">=22" },
