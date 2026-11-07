@@ -38,6 +38,7 @@ describe('release script', () => {
         '### Other\n\n- chore: deps (abcdef1)',
       ].join('\n\n'),
     );
+    expect(releaseNotes([c('fix: trim BOM', '', '')])).toBe('### Fixes\n\n- trim BOM');
   });
 
   it('prepends a CHANGELOG section above the newest one', () => {

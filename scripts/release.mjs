@@ -50,7 +50,7 @@ export function releaseNotes(commits) {
     const key = isBreaking(c) ? 'Breaking changes' : g?.type === 'feat' ? 'Features' : g?.type === 'fix' ? 'Fixes' : 'Other';
     // "Other" mixes types, so it keeps the subject as written (`chore: deps`).
     const text = g && key !== 'Other' ? `${g.scope ? `**${g.scope}:** ` : ''}${g.desc}` : c.subject;
-    groups[key].push(`- ${text} (${c.sha.slice(0, 7)})`);
+    groups[key].push(`- ${text}${c.sha ? ` (${c.sha.slice(0, 7)})` : ''}`);
   }
   return Object.entries(groups)
     .filter(([, items]) => items.length > 0)

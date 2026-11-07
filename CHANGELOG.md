@@ -6,7 +6,7 @@ All notable changes are listed here. Each entry is written from the Conventional
 
 ### Fixes
 
-- **ci:** release job no longer needs pnpm (c808d82)
+- **ci:** release job no longer needs pnpm (e2e360c)
 
 ## [0.1.0] - 2026-11-07
 
