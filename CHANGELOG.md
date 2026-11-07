@@ -2,6 +2,12 @@
 
 All notable changes are listed here. Each entry is written from the Conventional Commit messages of that release (see [Releases](README.md#releases)). Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.1.1] - 2026-11-07
+
+### Fixes
+
+- **ci:** release job no longer needs pnpm (c808d82)
+
 ## [0.1.0] - 2026-11-07
 
 First public release.
