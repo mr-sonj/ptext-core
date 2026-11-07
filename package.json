@@ -1,6 +1,6 @@
 {
   "name": "ptext-monorepo",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "PText core — Paste anything. Get clean data. Deterministic text tools for browser, Workers, Node, MCP and AI apps.",

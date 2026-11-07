@@ -1,6 +1,6 @@
 {
   "name": "@ptext/mcp",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "PText MCP server — stdio (local) and Web-standard Streamable HTTP (Cloudflare Workers, Deno, Bun).",
   "type": "module",
   "engines": { "node": ">=22" },

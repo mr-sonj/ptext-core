@@ -1,6 +1,6 @@
 {
   "name": "@ptext/core",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Deterministic text tools (extract, clean, columns, convert, encode, format) + local profiler. Zero dependencies; runs in browser, Cloudflare Workers, Node, Deno, Bun.",
   "type": "module",
   "engines": { "node": ">=22" },
