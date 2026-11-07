@@ -88,7 +88,7 @@ Reuse these helpers before you write your own:
 | Delimited table input with warnings | `lib/table.ts` (`delimiterOpt`, `resolveInputDelimiter`, `readRows`, `raggedWarning`, `maxWidth`) |
 | Extract-style list output | `lib/extract.ts` (`finishList`, `uniqueOpt`, `sortOpt`) |
 
-Warning codes already in use. Reuse a code when the situation is the same: `NO_MATCH`, `FILENAME_LIKE_SKIPPED`, `INVISIBLE_REMOVED`, `DELIMITER_NOT_DETECTED`, `UNTERMINATED_QUOTE`, `RAGGED_ROWS`, `MISSING_CELLS`, `RANGE_CLAMPED`, `DUPLICATE_HEADER`, `NOT_UTF8`.
+Warning codes already in use. Reuse a code when the situation is the same: `NO_MATCH`, `FILENAME_LIKE_SKIPPED`, `INVISIBLE_REMOVED`, `DELIMITER_NOT_DETECTED`, `UNTERMINATED_QUOTE`, `RAGGED_ROWS`, `MISSING_CELLS`, `RANGE_CLAMPED`, `DUPLICATE_HEADER`, `BLANK_ROWS_SKIPPED`, `NOT_UTF8`.
 
 ### 4. Input card (every tool) and suggest rule (optional)
 
