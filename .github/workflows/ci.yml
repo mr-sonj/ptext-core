@@ -86,9 +86,11 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v5
+      # No pnpm in this job: turn off setup-node's automatic cache, which follows packageManager (pnpm).
       - uses: actions/setup-node@v5
         with:
           node-version: 22
+          package-manager-cache: false
       - name: Create the release from CHANGELOG.md
         env:
           GH_TOKEN: ${{ github.token }}
