@@ -3,7 +3,7 @@
   "version": "0.1.2",
   "description": "PText command line: stdin → stdout, JSON mode for PHP/Laravel, Python and shell scripts.",
   "type": "module",
-  "engines": { "node": ">=20" },
+  "engines": { "node": ">=22" },
   "bin": {
     "ptext": "./dist/cli.js"
   },

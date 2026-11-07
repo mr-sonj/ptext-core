@@ -3,7 +3,7 @@
   "version": "0.1.2",
   "description": "Deterministic text tools (extract, clean, columns, convert, encode, format) + local profiler. Zero dependencies; runs in browser, Cloudflare Workers, Node, Deno, Bun.",
   "type": "module",
-  "engines": { "node": ">=20" },
+  "engines": { "node": ">=22" },
   "sideEffects": false,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

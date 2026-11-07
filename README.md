@@ -5,7 +5,7 @@
 [![CI](https://github.com/mr-sonj/ptext-core/actions/workflows/ci.yml/badge.svg)](https://github.com/mr-sonj/ptext-core/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/mr-sonj/ptext-core?sort=semver)](https://github.com/mr-sonj/ptext-core/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-![Node](https://img.shields.io/badge/node-%E2%89%A5%2020-brightgreen)
+![Node](https://img.shields.io/badge/node-%E2%89%A5%2022-brightgreen)
 ![Core dependencies](https://img.shields.io/badge/core%20dependencies-0-brightgreen)
 
 PText is a set of deterministic text tools for extracting, cleaning, splitting into columns, converting, encoding and formatting text. It also has a local profiler that looks at a paste and suggests the right tool. **An AI may pick the tool, but code always produces the result**, so the output is exact, repeatable and testable.
@@ -13,7 +13,7 @@ PText is a set of deterministic text tools for extracting, cleaning, splitting i
 One engine ships as a library, an MCP server, a CLI and OpenAI/Anthropic tool schemas.
 
 - **Zero runtime dependencies.** Pure ESM TypeScript, about 17 KB gzipped. The core uses no DOM and no Node APIs.
-- **Runs anywhere JS runs:** browser, Cloudflare Workers, Node ≥ 20, Deno, Bun.
+- **Runs anywhere JS runs:** browser, Cloudflare Workers, Node ≥ 22, Deno, Bun.
 - **Private by design.** No network calls, no telemetry. The optional AI ranker sees only counts and flags, never your text.
 - **Never loses data silently.** Anything skipped, guessed or changed is reported as a warning code.
 - **Contract-tested.** Every tool has language-neutral golden fixtures that any port (PHP, Python…) can run.
@@ -258,7 +258,7 @@ scripts/          new-tool.mjs (scaffold) · release.mjs (versioning, changelog,
 
 ## Development
 
-Requirements: Node ≥ 22.12 (for the test runner; the published packages run on Node ≥ 20) and pnpm 10 (`corepack enable`).
+Requirements: Node ≥ 22.12 (the test runner needs it; the packages need Node ≥ 22) and pnpm 10 (`corepack enable`).
 
 ```bash
 pnpm install

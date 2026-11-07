@@ -5,7 +5,7 @@
   "type": "module",
   "description": "PText core — Paste anything. Get clean data. Deterministic text tools for browser, Workers, Node, MCP and AI apps.",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "packageManager": "pnpm@10.30.3",
   "repository": {

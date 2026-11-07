@@ -1,6 +1,6 @@
 # @ptext/core
 
-Deterministic text tools (extract, clean, columns, convert, encode, format) with a local profiler that suggests the right tool. Zero dependencies. Runs in the browser, Cloudflare Workers, Node ≥ 20, Deno and Bun.
+Deterministic text tools (extract, clean, columns, convert, encode, format) with a local profiler that suggests the right tool. Zero dependencies. Runs in the browser, Cloudflare Workers, Node ≥ 22, Deno and Bun.
 
 ```bash
 npm install @ptext/core

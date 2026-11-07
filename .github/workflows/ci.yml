@@ -33,23 +33,6 @@ jobs:
       - run: pnpm build
       - run: pnpm typecheck
       - run: pnpm test
-
-  # The published packages promise Node >= 20. Vitest needs Node 22, so build there and run the output on 20.
-  node20:
-    name: Runtime smoke (Node 20)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm build
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 20
       - name: CLI runs a tool
         run: |
           out=$(printf 'Mail a@x.com or b@y.io, again a@x.com\n' | node packages/cli/dist/cli.js run extract-emails)
@@ -79,7 +62,7 @@ jobs:
   # The tag, the version files and the changelog are written together when the release is cut. Nothing is published to npm here.
   release:
     name: GitHub release
-    needs: [test, node20, worker]
+    needs: [test, worker]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
