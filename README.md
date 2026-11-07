@@ -257,7 +257,7 @@ packages/mcp      transport-agnostic server · fetch handler (HTTP) · stdio bin
 packages/cli      ptext command (runCli is a pure, tested function)
 fixtures/         golden/<id>.json (tool contract) · suggest.json (profiler benchmark)
 examples/         cloudflare-worker · laravel · browser (parity harness)
-scripts/          new-tool.mjs (scaffold) · release.mjs (cut a release: version, changelog, tag)
+scripts/          new-tool.mjs (scaffold) · release.mjs (ship: release when due, push main)
 ```
 
 ## Development
@@ -283,9 +283,9 @@ Browser parity harness: run `pnpm build`, serve the repo root (`npx serve .`), t
 
 ## Releases
 
-Versions follow [Semantic Versioning](https://semver.org/) and come from [Conventional Commits](https://www.conventionalcommits.org/): `feat!:` / `BREAKING CHANGE:` → major (minor while on `0.x`), `feat:` → minor, anything else → patch.
+Versions follow [Semantic Versioning](https://semver.org/) and come from [Conventional Commits](https://www.conventionalcommits.org/): `feat!:` / `BREAKING CHANGE:` → major (minor while on `0.x`), `feat:` → minor, anything else → patch. Only `feat`, `fix`, `perf`, `revert` and breaking commits call for a release; `docs`, `test`, `chore`, `ci`, `build` and `refactor` commits go out with the next one.
 
-Each release is one `chore(release): vX.Y.Z` commit that writes the version to every `package.json` and to `VERSION` and adds a [CHANGELOG.md](CHANGELOG.md) section, tagged `vX.Y.Z`. A maintainer cuts it from `main` with `node scripts/release.mjs cut` (`--dry-run` previews it). CI builds and tests the tag, then publishes a [GitHub release](https://github.com/mr-sonj/ptext-core/releases) with that changelog section. Packages are not published to npm yet.
+The maintainer pushes `main` with `node scripts/release.mjs ship` (`--dry-run` previews it). When a release is due, it first writes the version to every `package.json` and to `VERSION`, adds a [CHANGELOG.md](CHANGELOG.md) section and commits that as `chore(release): vX.Y.Z`, tagged `vX.Y.Z`. CI builds and tests the tag, then publishes a [GitHub release](https://github.com/mr-sonj/ptext-core/releases) with that changelog section. Packages are not published to npm yet.
 
 ## Contributing
 

@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { execFileSync } from 'node:child_process';
 // @ts-expect-error plain ESM script without types
-import { applyRelease, autoVersion, bumpLevel, changelogSection, nextVersion, readVersions, releaseNotes, updateChangelog, VERSION_FILES, VERSION_TS } from './release.mjs';
+import { applyRelease, autoVersion, bumpLevel, changelogSection, isReleasable, nextVersion, readVersions, releaseNotes, RELEASE_FILES, updateChangelog, VERSION_FILES } from './release.mjs';
 
 const c = (subject: string, body = '', sha = 'abcdef1234567') => ({ sha, subject, body });
 const repoRoot = new URL('../', import.meta.url);
@@ -17,6 +17,11 @@ describe('release script', () => {
     expect(bumpLevel([c('feat!: drop option')])).toBe('major');
     expect(bumpLevel([c('refactor: x', 'BREAKING CHANGE: result shape changed')])).toBe('major');
     expect(bumpLevel([c('update stuff')])).toBe('patch');
+  });
+
+  it('only feat, fix, perf, revert and breaking commits call for a release', () => {
+    for (const x of [c('feat: x'), c('fix(cli): x'), c('perf: x'), c('revert: x'), c('build!: node 22'), c('chore: x', 'BREAKING CHANGE: y')]) expect(isReleasable(x), x.subject).toBe(true);
+    for (const x of [c('docs: x'), c('chore(deps): x'), c('ci: x'), c('build: x'), c('refactor: x'), c('test: x'), c('update stuff')]) expect(isReleasable(x), x.subject).toBe(false);
   });
 
   it('bumps semver, and a breaking change on 0.x only bumps minor', () => {
@@ -63,7 +68,7 @@ describe('release script', () => {
 
   it('applyRelease writes every version file and the changelog; `notes` checks them', () => {
     const dir = mkdtempSync(join(tmpdir(), 'ptext-release-'));
-    for (const f of [...VERSION_FILES, VERSION_TS, 'CHANGELOG.md', 'scripts/release.mjs']) {
+    for (const f of [...RELEASE_FILES, 'scripts/release.mjs']) {
       mkdirSync(join(dir, f, '..'), { recursive: true });
       cpSync(new URL(f, repoRoot), join(dir, f));
     }
@@ -78,13 +83,15 @@ describe('release script', () => {
   });
 });
 
-describe('release cut', () => {
+describe('release ship', () => {
   // A throwaway repo with a bare `origin`, holding just the files a release writes.
-  const base = mkdtempSync(join(tmpdir(), 'ptext-cut-'));
+  const base = mkdtempSync(join(tmpdir(), 'ptext-ship-'));
   const work = join(base, 'work');
   const sh = (cwd: string, args: string[]) => execFileSync('git', args, { cwd, encoding: 'utf8', stdio: 'pipe' }).trim();
   const git = (...args: string[]) => sh(work, args);
-  const cut = (...args: string[]) => execFileSync('node', [join(work, 'scripts/release.mjs'), 'cut', ...args], { encoding: 'utf8', stdio: 'pipe' });
+  const origin = (...args: string[]) => sh(join(base, 'origin.git'), args);
+  const script = (...args: string[]) => execFileSync('node', [join(work, 'scripts/release.mjs'), ...args], { encoding: 'utf8', stdio: 'pipe' });
+  const ship = (...args: string[]) => script('ship', ...args);
   const fails = (fn: () => unknown) => {
     try {
       fn();
@@ -103,7 +110,7 @@ describe('release cut', () => {
     sh(base, ['init', '-q', '--bare', '-b', 'main', 'origin.git']);
     sh(base, ['init', '-q', '-b', 'main', 'work']);
     for (const [k, v] of [['user.name', 'Dev'], ['user.email', 'dev@x'], ['commit.gpgsign', 'false'], ['tag.gpgSign', 'false']]) git('config', k!, v!);
-    for (const f of [...VERSION_FILES, VERSION_TS, 'CHANGELOG.md', 'scripts/release.mjs']) {
+    for (const f of [...RELEASE_FILES, 'scripts/release.mjs']) {
       mkdirSync(join(work, f, '..'), { recursive: true });
       cpSync(new URL(f, repoRoot), join(work, f));
     }
@@ -115,54 +122,78 @@ describe('release cut', () => {
     git('push', '-q', 'origin', 'main', 'v0.4.0');
   });
 
-  it('says so when there is nothing to release', () => {
-    expect(cut('--skip-tests')).toBe('nothing to release since v0.4.0\n');
+  it('has nothing to ship right after a release', () => {
+    expect(ship()).toBe('no commits since v0.4.0\nnothing to push: origin/main is up to date\n');
   });
 
-  it('--dry-run previews the version and notes and writes nothing', () => {
-    commit('a.txt', 'a\n', 'fix(core): trim BOM');
-    commit('b.txt', 'b\n', 'feat(cli): add --json');
+  it('pushes commits that call for no release and leaves the version alone', () => {
+    commit('a.txt', 'a\n', 'docs: wording');
+    expect(script('pending')).toBe('');
+    expect(ship('--dry-run')).toContain('would push 1 commit(s) → origin');
+    expect(origin('rev-parse', 'main')).not.toBe(git('rev-parse', 'HEAD'));
+    const out = ship();
+    expect(out).toContain('no release: none of them is feat, fix, perf, revert or breaking');
+    expect(out).toContain('pushed main → origin');
+    expect(origin('rev-parse', 'main')).toBe(git('rev-parse', 'HEAD'));
+    expect(origin('tag')).toBe('v0.4.0');
+    expect(readVersions(pathToFileURL(work + '/'))['package.json']).toBe('0.4.0');
+  });
+
+  it('--dry-run previews the release and writes nothing; `pending` names it', () => {
+    commit('b.txt', 'b\n', 'fix(core): trim BOM');
+    commit('c.txt', 'c\n', 'feat(cli): add --json');
     const head = git('rev-parse', 'HEAD');
-    const out = cut('--dry-run');
+    expect(script('pending')).toBe('3 commit(s) since v0.4.0 call for v0.5.0\n');
+    const out = ship('--dry-run');
     expect(out).toContain('release: v0.4.0 → v0.5.0');
     expect(out).toContain(`- **cli:** add --json (${head.slice(0, 7)})`);
     expect(git('rev-parse', 'HEAD')).toBe(head);
     expect(git('status', '--porcelain')).toBe('');
+    expect(origin('rev-parse', 'main')).not.toBe(head);
   });
 
-  it('refuses off main, with uncommitted changes, or behind origin', () => {
+  it('refuses off main, with changes to a release file, or behind origin', () => {
     git('checkout', '-q', '-b', 'topic');
-    expect(fails(() => cut('--skip-tests'))).toMatch(/on main, not topic/);
+    expect(fails(() => ship())).toMatch(/ship from main, not topic/);
     git('checkout', '-q', 'main');
-    writeFileSync(join(work, 'a.txt'), 'changed\n');
-    expect(fails(() => cut('--skip-tests'))).toMatch(/uncommitted changes/);
-    git('checkout', '-q', '--', 'a.txt');
+    writeFileSync(join(work, 'CHANGELOG.md'), 'edited\n');
+    expect(fails(() => ship())).toMatch(/commit or discard your changes to them first:\nM CHANGELOG\.md/);
+    git('checkout', '-q', '--', 'CHANGELOG.md');
 
     sh(base, ['clone', '-q', 'origin.git', 'other']);
     const other = join(base, 'other');
-    writeFileSync(join(other, 'c.txt'), 'c\n');
-    sh(other, ['add', 'c.txt']);
+    writeFileSync(join(other, 'd.txt'), 'd\n');
+    sh(other, ['add', 'd.txt']);
     sh(other, ['-c', 'user.name=Contributor', '-c', 'user.email=c@x', '-c', 'commit.gpgsign=false', 'commit', '-q', '-m', 'fix: merged on GitHub']);
     sh(other, ['push', '-q', 'origin', 'main']);
-    expect(fails(() => cut('--skip-tests'))).toMatch(/origin\/main has commits that main does not; pull first/);
+    expect(fails(() => ship())).toMatch(/origin\/main has commits that main does not; pull first/);
     git('pull', '-q', '--rebase', 'origin', 'main');
   });
 
-  it('writes the release, commits, tags and pushes main + tag', () => {
-    expect(cut('--skip-tests')).toContain('pushed main + v0.5.0 → origin');
+  it('releases in one commit of the release files, tags, pushes both, and leaves other work as it was', () => {
+    writeFileSync(join(work, 'a.txt'), 'staged\n');
+    git('add', 'a.txt');
+    writeFileSync(join(work, 'b.txt'), 'not staged\n');
+
+    expect(ship()).toContain('pushed main + v0.5.0 → origin');
     expect(git('log', '-1', '--format=%s')).toBe('chore(release): v0.5.0');
+    expect(git('show', '--name-only', '--format=', 'HEAD').split('\n').sort()).toEqual([...RELEASE_FILES].sort());
+    expect(git('status', '--porcelain')).toBe('M  a.txt\n M b.txt');
     expect(new Set(Object.values(readVersions(pathToFileURL(work + '/'))))).toEqual(new Set(['0.5.0']));
     const changelog = readFileSync(join(work, 'CHANGELOG.md'), 'utf8');
-    expect(changelog).toMatch(/## \[0\.5\.0\] [^]*### Features\n\n- \*\*cli:\*\* add --json[^]*### Fixes\n\n- merged on GitHub[^]*- \*\*core:\*\* trim BOM[^]*## \[0\.4\.0\]/);
+    expect(changelog).toMatch(/## \[0\.5\.0\] [^]*### Features\n\n- \*\*cli:\*\* add --json[^]*### Fixes\n\n- merged on GitHub[^]*- \*\*core:\*\* trim BOM[^]*### Other\n\n- docs: wording[^]*## \[0\.4\.0\]/);
     expect(changelog).toContain(`merged on GitHub (${git('rev-parse', '--short=7', 'HEAD~3')})`);
-    expect(sh(join(base, 'origin.git'), ['rev-parse', 'main'])).toBe(git('rev-parse', 'HEAD'));
-    expect(sh(join(base, 'origin.git'), ['rev-parse', 'v0.5.0^{commit}'])).toBe(git('rev-parse', 'HEAD'));
+    expect(origin('rev-parse', 'main')).toBe(git('rev-parse', 'HEAD'));
+    expect(origin('rev-parse', 'v0.5.0^{commit}')).toBe(git('rev-parse', 'HEAD'));
+    git('commit', '-q', '-am', 'docs: notes');
   });
 
-  it('--bump forces the level; --no-push only tags', () => {
-    commit('a.txt', 'a2\n', 'docs: wording');
-    expect(cut('--skip-tests', '--bump=major', '--no-push')).toContain('tagged v1.0.0, not pushed');
-    expect(sh(join(base, 'origin.git'), ['tag'])).toBe('v0.4.0\nv0.5.0');
-    expect(fails(() => cut('--bump=huge'))).toMatch(/--bump must be/);
+  it('--bump forces a release; a release left local by --no-push goes out with the next ship', () => {
+    expect(ship('--bump=major', '--no-push')).toContain('tagged v1.0.0, not pushed');
+    expect(origin('tag')).toBe('v0.4.0\nv0.5.0');
+    expect(ship()).toBe('no commits since v1.0.0\npushed main → origin\n');
+    expect(origin('tag')).toBe('v0.4.0\nv0.5.0\nv1.0.0');
+    expect(origin('rev-parse', 'main')).toBe(git('rev-parse', 'HEAD'));
+    expect(fails(() => ship('--bump=huge'))).toMatch(/--bump must be/);
   });
 });

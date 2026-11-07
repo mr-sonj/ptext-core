@@ -24,14 +24,16 @@ Run `pnpm build && pnpm test` before you open a pull request. CI runs the same c
 
 ## Commit messages
 
-Use [Conventional Commits](https://www.conventionalcommits.org/). Releases read them to pick the next version and to write the changelog:
+Use [Conventional Commits](https://www.conventionalcommits.org/). Releases read them to decide whether a release is due, to pick its version and to write the changelog:
 
-| Prefix | Example | Version bump |
+| Prefix | Example | Release |
 | --- | --- | --- |
 | `feat:` | `feat(convert): add csv-to-yaml` | minor |
-| `fix:` | `fix(extract-ip): reject 256.x octets` | patch |
-| `docs:` `test:` `refactor:` `chore:` `ci:` … | `docs: clarify MCP setup` | patch |
+| `fix:` `perf:` `revert:` | `fix(extract-ip): reject 256.x octets` | patch |
+| `docs:` `test:` `refactor:` `chore:` `ci:` `build:` … | `docs: clarify MCP setup` | none; listed in the next release |
 | `feat!:` or a `BREAKING CHANGE:` footer | `feat!: rename stats.count` | major (minor while on 0.x) |
+
+A dependency update that users should get is a `fix(deps):`.
 
 Pull requests are squash-merged, so the pull request title becomes the commit message: write it in this form too.
 

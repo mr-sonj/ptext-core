@@ -59,7 +59,7 @@ jobs:
           WRANGLER_SEND_METRICS: 'false'
 
   # A vX.Y.Z tag that passes CI becomes a GitHub release, with its CHANGELOG.md section as the notes.
-  # The tag, the version files and the changelog are written together when the release is cut. Nothing is published to npm here.
+  # `node scripts/release.mjs ship` writes the tag, the version files and the changelog together.
   release:
     name: GitHub release
     needs: [test, worker]
@@ -80,4 +80,39 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           node scripts/release.mjs notes "$TAG" > "$RUNNER_TEMP/notes.md"
+          if gh release view "$TAG" >/dev/null 2>&1; then echo "$TAG already has a release"; exit 0; fi
           gh release create "$TAG" --title "$TAG" --notes-file "$RUNNER_TEMP/notes.md" --verify-tag
+
+  # Off until the repository variable NPM_PUBLISH is "true". Publishes each package at the tag's version, with
+  # provenance, unless that version is already on npm. Auth: npm trusted publishing (OIDC), or an NPM_TOKEN secret.
+  npm:
+    name: Publish to npm
+    needs: [release]
+    if: startsWith(github.ref, 'refs/tags/v') && vars.NPM_PUBLISH == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      # Trusted publishing needs npm 11.5.1 or newer. pnpm pack turns workspace:* into the real version.
+      - name: Publish @ptext/core, @ptext/mcp, @ptext/cli
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          npm install -g npm@^11.5.1
+          v="${TAG#v}"
+          for p in core mcp cli; do   # core first: mcp and cli depend on it
+            if npm view "@ptext/$p@$v" version >/dev/null 2>&1; then echo "@ptext/$p@$v is already on npm"; continue; fi
+            (cd "packages/$p" && pnpm pack --pack-destination "$RUNNER_TEMP")
+            npm publish "$RUNNER_TEMP/ptext-$p-$v.tgz" --access public --provenance
+          done
