@@ -1,0 +1,32 @@
+{
+  "name": "@ptext/core",
+  "version": "0.1.0",
+  "description": "Deterministic text tools (extract, clean, columns, convert, encode, format) + local profiler. Zero dependencies; runs in browser, Cloudflare Workers, Node, Deno, Bun.",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "keywords": ["text", "extract", "csv", "json", "base64", "mcp", "cloudflare-workers"],
+  "license": "MIT",
+  "author": "Sonjj",
+  "homepage": "https://github.com/mr-sonj/ptext-core/tree/main/packages/core#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mr-sonj/ptext-core.git",
+    "directory": "packages/core"
+  },
+  "bugs": "https://github.com/mr-sonj/ptext-core/issues",
+  "publishConfig": { "access": "public" }
+}

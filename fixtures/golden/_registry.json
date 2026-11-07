@@ -1,0 +1,29 @@
+{
+  "$schema": "../golden.schema.json",
+  "cases": [
+    {
+      "name": "unknown tool",
+      "tool": "nope",
+      "input": "x",
+      "expectError": "UNKNOWN_TOOL"
+    },
+    {
+      "name": "unknown option",
+      "tool": "clean-lines",
+      "options": {
+        "foo": true
+      },
+      "input": "x",
+      "expectError": "INVALID_OPTION"
+    },
+    {
+      "name": "inherited option name is rejected, not ignored",
+      "tool": "clean-lines",
+      "input": "x",
+      "options": {
+        "constructor": true
+      },
+      "expectError": "INVALID_OPTION"
+    }
+  ]
+}

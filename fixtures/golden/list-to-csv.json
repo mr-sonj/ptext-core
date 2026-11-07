@@ -1,0 +1,76 @@
+{
+  "$schema": "../golden.schema.json",
+  "tool": "list-to-csv",
+  "cases": [
+    {
+      "name": "list-to-csv: header + quoting",
+      "options": {
+        "header": "email"
+      },
+      "input": "a@x.com\nhas,comma\n\nhas \"quote\"",
+      "expect": {
+        "output": "email\na@x.com\n\"has,comma\"\n\"has \"\"quote\"\"\""
+      }
+    },
+    {
+      "name": "list-to-csv: keep empty lines, tab delimiter quotes tabs and edge spaces",
+      "edge": true,
+      "options": {
+        "delimiter": "tab",
+        "removeEmpty": false
+      },
+      "input": "x\n\n\ty\n z",
+      "expect": {
+        "output": "x\n\n\"\ty\"\n\" z\""
+      }
+    },
+    {
+      "name": "list-to-csv: CRLF and CR lines become CSV records",
+      "input": "a\r\nb\rc\r\n",
+      "expect": { "output": "a\nb\nc" }
+    },
+    {
+      "name": "list-to-csv: semicolon delimiter and quoted header",
+      "options": { "delimiter": "semicolon", "header": "full;name" },
+      "input": "Ada\nBob;Lee",
+      "expect": { "output": "\"full;name\"\nAda\n\"Bob;Lee\"" }
+    },
+    {
+      "name": "list-to-csv: literal multi-character delimiter",
+      "options": { "delimiter": "||" },
+      "input": "a||b\nc",
+      "expect": { "output": "\"a||b\"\nc" }
+    },
+    {
+      "name": "list-to-csv: whitespace-only rows are removed by default",
+      "edge": true,
+      "input": "a\n   \n\tb",
+      "expect": { "output": "a\n\"\tb\"" }
+    },
+    {
+      "name": "list-to-csv: blank input without header",
+      "edge": true,
+      "input": "",
+      "expect": { "output": "" }
+    },
+    {
+      "name": "list-to-csv: blank input with header",
+      "edge": true,
+      "options": { "header": "name" },
+      "input": "",
+      "expect": { "output": "name" }
+    },
+    {
+      "name": "list-to-csv: empty delimiter is invalid",
+      "input": "a\nb",
+      "options": { "delimiter": "" },
+      "expectError": "INVALID_OPTION"
+    },
+    {
+      "name": "list-to-csv: nonboolean removeEmpty is invalid",
+      "input": "a\nb",
+      "options": { "removeEmpty": "maybe" },
+      "expectError": "INVALID_OPTION"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "$schema": "../golden.schema.json",
+  "tool": "clean-lines",
+  "cases": [
+    {
+      "name": "clean-lines: defaults",
+      "input": "  a  \n\n\t b﻿\n   \nc",
+      "expect": {
+        "output": "a\nb\nc",
+        "warnings": [
+          "INVISIBLE_REMOVED"
+        ]
+      }
+    },
+    {
+      "name": "clean-lines: collapse spaces",
+      "options": {
+        "collapseSpaces": true
+      },
+      "input": "a    b\t\tc",
+      "expect": {
+        "output": "a b c"
+      }
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "$schema": "../golden.schema.json",
+  "tool": "extract-ip",
+  "cases": [
+    {
+      "name": "ip: v4 validation and port",
+      "input": "ok 192.168.1.1:8080, bad 999.1.1.1, 10.0.0.256, dup 192.168.1.1",
+      "expect": {
+        "output": "192.168.1.1"
+      }
+    },
+    {
+      "name": "ip: keepPort",
+      "options": {
+        "keepPort": true,
+        "unique": false
+      },
+      "input": "192.168.1.1:8080 8.8.8.8",
+      "expect": {
+        "output": "192.168.1.1:8080\n8.8.8.8"
+      }
+    },
+    {
+      "name": "ip: v6 compressed",
+      "options": {
+        "version": "6"
+      },
+      "input": "loopback ::1 and 2001:DB8::ff00:42:8329 and [fe80::1]:443 not 12:30",
+      "expect": {
+        "output": "::1\n2001:db8::ff00:42:8329\nfe80::1"
+      }
+    },
+    {
+      "name": "ip: IPv4-mapped IPv6 stays one address",
+      "edge": true,
+      "input": "client ::ffff:192.168.1.1 connected",
+      "expect": {
+        "output": "::ffff:192.168.1.1"
+      }
+    },
+    {
+      "name": "ip: bare :: in prose is not an address, [::] is",
+      "edge": true,
+      "input": "a :: b and std::cout, ping ::1 or [::]:8080",
+      "expect": {
+        "output": "::1\n::"
+      }
+    }
+  ]
+}

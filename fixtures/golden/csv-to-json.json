@@ -1,0 +1,174 @@
+{
+  "$schema": "../golden.schema.json",
+  "tool": "csv-to-json",
+  "cases": [
+    {
+      "name": "csv-to-json: header objects",
+      "options": {
+        "indent": 0
+      },
+      "input": "name,age\nAn,30\n\"B, C\",",
+      "expect": {
+        "output": "[{\"name\":\"An\",\"age\":\"30\"},{\"name\":\"B, C\",\"age\":\"\"}]"
+      }
+    },
+    {
+      "name": "csv-to-json: duplicate headers",
+      "options": {
+        "indent": 0
+      },
+      "input": "a,a\n1,2",
+      "expect": {
+        "output": "[{\"a\":\"1\",\"a_2\":\"2\"}]",
+        "warnings": [
+          "DUPLICATE_HEADER"
+        ]
+      }
+    },
+    {
+      "name": "csv-to-json: __proto__ header is kept as a key",
+      "edge": true,
+      "options": {
+        "indent": 0
+      },
+      "input": "name,__proto__\nann,secret",
+      "expect": {
+        "output": "[{\"name\":\"ann\",\"__proto__\":\"secret\"}]"
+      }
+    },
+    {
+      "name": "csv-to-json: tsv no header",
+      "options": {
+        "header": false,
+        "indent": 0
+      },
+      "input": "1\t2\n3\t4",
+      "expect": {
+        "output": "[[\"1\",\"2\"],[\"3\",\"4\"]]"
+      }
+    },
+    {
+      "name": "csv-to-json: quoted comma escaped quote and embedded newline",
+      "options": { "delimiter": "comma", "indent": 0 },
+      "input": "name,note\nAda,\"one, \"\"two\"\"\nthree\"",
+      "expect": { "output": "[{\"name\":\"Ada\",\"note\":\"one, \\\"two\\\"\\nthree\"}]" }
+    },
+    {
+      "name": "csv-to-json: CRLF and CR record endings",
+      "options": { "delimiter": "comma", "indent": 0 },
+      "input": "a,b\r\n1,2\r3,4\r\n",
+      "expect": { "output": "[{\"a\":\"1\",\"b\":\"2\"},{\"a\":\"3\",\"b\":\"4\"}]" }
+    },
+    {
+      "name": "csv-to-json: semicolon auto detection with quoted comma",
+      "options": { "indent": 0 },
+      "input": "name;note\nAda;\"one,two\"",
+      "expect": { "output": "[{\"name\":\"Ada\",\"note\":\"one,two\"}]" }
+    },
+    {
+      "name": "csv-to-json: literal multi-character delimiter",
+      "options": { "delimiter": "||", "indent": 0 },
+      "input": "a||b\n1||2",
+      "expect": { "output": "[{\"a\":\"1\",\"b\":\"2\"}]" }
+    },
+    {
+      "name": "csv-to-json: no header keeps ragged rows",
+      "edge": true,
+      "options": { "delimiter": "comma", "header": false, "indent": 0 },
+      "input": "a,b\n1\n2,3,4",
+      "expect": { "output": "[[\"a\",\"b\"],[\"1\"],[\"2\",\"3\",\"4\"]]" }
+    },
+    {
+      "name": "csv-to-json: no header keeps empty and whitespace-only records",
+      "edge": true,
+      "options": { "delimiter": "comma", "header": false, "indent": 0 },
+      "input": "a\n\n   \nb",
+      "expect": { "output": "[[\"a\"],[\"\"],[\"   \"],[\"b\"]]" }
+    },
+    {
+      "name": "csv-to-json: header mode reports skipped blank records",
+      "edge": true,
+      "options": { "delimiter": "comma", "indent": 0 },
+      "input": "a,b\n1,2\n\n3,4",
+      "expect": {
+        "output": "[{\"a\":\"1\",\"b\":\"2\"},{\"a\":\"3\",\"b\":\"4\"}]",
+        "warnings": ["BLANK_ROWS_SKIPPED"]
+      }
+    },
+    {
+      "name": "csv-to-json: short and long rows preserve values",
+      "edge": true,
+      "options": { "delimiter": "comma", "indent": 0 },
+      "input": "a,b\n1\n2,3,4",
+      "expect": {
+        "output": "[{\"a\":\"1\",\"b\":\"\"},{\"a\":\"2\",\"b\":\"3\",\"column3\":\"4\"}]",
+        "warnings": ["RAGGED_ROWS"]
+      }
+    },
+    {
+      "name": "csv-to-json: blank header gets a generated name",
+      "edge": true,
+      "options": { "delimiter": "comma", "indent": 0 },
+      "input": " , b \n1,2",
+      "expect": { "output": "[{\"column1\":\"1\",\"b\":\"2\"}]" }
+    },
+    {
+      "name": "csv-to-json: suffixed duplicate cannot overwrite another header",
+      "edge": true,
+      "options": { "delimiter": "comma", "indent": 0 },
+      "input": "a,a_2,a\n1,2,3",
+      "expect": {
+        "output": "[{\"a\":\"1\",\"a_2\":\"2\",\"a_3\":\"3\"}]",
+        "warnings": ["DUPLICATE_HEADER"]
+      }
+    },
+    {
+      "name": "csv-to-json: extra column cannot overwrite header",
+      "edge": true,
+      "options": { "delimiter": "comma", "indent": 0 },
+      "input": "column3,x\na,b,c",
+      "expect": {
+        "output": "[{\"column3\":\"a\",\"x\":\"b\",\"column3_2\":\"c\"}]",
+        "warnings": ["RAGGED_ROWS"]
+      }
+    },
+    {
+      "name": "csv-to-json: unterminated quote reports warning",
+      "edge": true,
+      "options": { "delimiter": "comma", "indent": 0 },
+      "input": "a,b\n1,\"two",
+      "expect": {
+        "output": "[{\"a\":\"1\",\"b\":\"two\"}]",
+        "warnings": ["UNTERMINATED_QUOTE"]
+      }
+    },
+    {
+      "name": "csv-to-json: empty input",
+      "edge": true,
+      "input": "",
+      "expect": { "output": "[]" }
+    },
+    {
+      "name": "csv-to-json: no detectable delimiter falls back with warning",
+      "edge": true,
+      "options": { "indent": 0 },
+      "input": "name\nAda",
+      "expect": {
+        "output": "[{\"name\":\"Ada\"}]",
+        "warnings": ["DELIMITER_NOT_DETECTED"]
+      }
+    },
+    {
+      "name": "csv-to-json: empty delimiter is invalid",
+      "input": "a,b\n1,2",
+      "options": { "delimiter": "" },
+      "expectError": "INVALID_OPTION"
+    },
+    {
+      "name": "csv-to-json: indent above schema limit is invalid",
+      "input": "a,b\n1,2",
+      "options": { "indent": 9 },
+      "expectError": "INVALID_OPTION"
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PText golden fixture file",
+  "description": "Language-neutral tool contract. One file per tool (fixtures/golden/<tool-id>.json); _registry.json holds cases that are not about one tool. Any port (TS core, MCP, browser, PHP, Python) must produce exactly expect.output and exactly expect.warnings, or fail with expectError.",
+  "type": "object",
+  "properties": {
+    "$schema": { "type": "string" },
+    "tool": { "type": "string", "description": "Tool id for every case in this file. Must equal the file name." },
+    "cases": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/case" } }
+  },
+  "required": ["cases"],
+  "additionalProperties": false,
+  "$defs": {
+    "text": {
+      "description": "A string, or an array of lines joined with \"\\n\" (add a trailing \"\" for a final newline).",
+      "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }]
+    },
+    "case": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Unique, starts with a short tool label, e.g. \"csv-to-json: duplicate headers\"." },
+        "tool": { "type": "string", "description": "Only in _registry.json, where cases target different tools." },
+        "edge": { "type": "boolean", "description": "Bad data, ambiguity, limits or empty input. Cases with expectError or warnings count as edge cases too." },
+        "input": { "$ref": "#/$defs/text" },
+        "options": { "type": "object" },
+        "expect": {
+          "type": "object",
+          "properties": {
+            "output": { "$ref": "#/$defs/text" },
+            "warnings": { "type": "array", "items": { "type": "string" }, "description": "Warning codes in order. Omitted means no warnings." }
+          },
+          "required": ["output"],
+          "additionalProperties": false
+        },
+        "expectError": {
+          "enum": ["UNKNOWN_TOOL", "INVALID_OPTION", "INVALID_INPUT", "INPUT_TOO_LARGE"],
+          "description": "The PTextError code the call must throw."
+        }
+      },
+      "required": ["name", "input"],
+      "oneOf": [{ "required": ["expect"] }, { "required": ["expectError"] }],
+      "additionalProperties": false
+    }
+  }
+}

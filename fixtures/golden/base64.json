@@ -1,0 +1,47 @@
+{
+  "$schema": "../golden.schema.json",
+  "tool": "base64",
+  "cases": [
+    {
+      "name": "base64: decode utf8",
+      "input": "eGluIGNow6BvIMSR4bqhaQ==",
+      "expect": {
+        "output": "xin chào đại"
+      }
+    },
+    {
+      "name": "base64: encode url-safe",
+      "options": {
+        "direction": "encode",
+        "urlSafe": true
+      },
+      "input": "?>?>",
+      "expect": {
+        "output": "Pz4_Pg"
+      }
+    },
+    {
+      "name": "base64: decode url-safe no padding",
+      "edge": true,
+      "input": "Pz4_Pg",
+      "expect": {
+        "output": "?>?>"
+      }
+    },
+    {
+      "name": "base64: invalid",
+      "input": "not base64!!",
+      "expectError": "INVALID_INPUT"
+    },
+    {
+      "name": "base64: binary warns",
+      "input": "/w==",
+      "expect": {
+        "output": "�",
+        "warnings": [
+          "NOT_UTF8"
+        ]
+      }
+    }
+  ]
+}

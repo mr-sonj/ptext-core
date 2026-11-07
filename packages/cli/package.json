@@ -1,0 +1,29 @@
+{
+  "name": "@ptext/cli",
+  "version": "0.1.0",
+  "description": "PText command line: stdin → stdout, JSON mode for PHP/Laravel, Python and shell scripts.",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "bin": {
+    "ptext": "./dist/cli.js"
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && chmod +x dist/cli.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@ptext/core": "workspace:*"
+  },
+  "keywords": ["cli", "text", "extract", "csv", "json", "base64", "laravel", "php"],
+  "license": "MIT",
+  "author": "Sonjj",
+  "homepage": "https://github.com/mr-sonj/ptext-core/tree/main/packages/cli#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mr-sonj/ptext-core.git",
+    "directory": "packages/cli"
+  },
+  "bugs": "https://github.com/mr-sonj/ptext-core/issues",
+  "publishConfig": { "access": "public" }
+}

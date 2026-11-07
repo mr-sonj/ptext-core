@@ -1,0 +1,35 @@
+{
+  "$schema": "../golden.schema.json",
+  "tool": "remove-duplicates",
+  "cases": [
+    {
+      "name": "remove-duplicates: keep order, trim",
+      "input": "b\na\n b \nA\na",
+      "expect": {
+        "output": "b\na\nA"
+      }
+    },
+    {
+      "name": "remove-duplicates: case-insensitive",
+      "options": {
+        "caseSensitive": false
+      },
+      "input": "b\na\nA\nB",
+      "expect": {
+        "output": "b\na"
+      }
+    },
+    {
+      "name": "remove-duplicates: keepEmpty, trim=false",
+      "edge": true,
+      "options": {
+        "keepEmpty": true,
+        "trim": false
+      },
+      "input": "a\n\n a\na\n\n",
+      "expect": {
+        "output": "a\n\n a\n"
+      }
+    }
+  ]
+}

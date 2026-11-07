@@ -1,0 +1,240 @@
+{
+  "$comment": "Profiler benchmark corpus. `expectTop3`: that tool must be in the top-3 suggestions. `expectNotSuggested`: none of these tools may be suggested at all (guards against look-alike false positives). A case needs at least one of the two. Target: ≥ 90% top-3.",
+  "cases": [
+    {
+      "name": "messy text with emails",
+      "input": "Hi team, ping john@acme.com or sales@acme.io for details.",
+      "expectTop3": "extract-emails"
+    },
+    {
+      "name": "log with urls",
+      "input": "GET https://api.example.com/v1/users 200\nGET https://api.example.com/v1/items 404",
+      "expectTop3": "extract-urls"
+    },
+    {
+      "name": "pipe account list",
+      "input": "user1|pass1|a@x.com\nuser2|pass2|b@x.com\nuser3|pass3|c@x.com",
+      "expectTop3": "split-columns"
+    },
+    {
+      "name": "valid json",
+      "input": "{\"a\":1,\"b\":[1,2,3]}",
+      "expectTop3": "json-format"
+    },
+    {
+      "name": "broken json",
+      "input": "{\"a\":1,}",
+      "expectTop3": "json-format"
+    },
+    {
+      "name": "base64 blob",
+      "input": "eGluIGNow6BvIMSR4bqhaQ==",
+      "expectTop3": "base64"
+    },
+    {
+      "name": "percent encoded",
+      "input": "q=xin%20ch%C3%A0o%20b%E1%BA%A1n",
+      "expectTop3": "url-encode"
+    },
+    {
+      "name": "duplicated list",
+      "input": "apple\nbanana\napple\ncherry\nbanana",
+      "expectTop3": "remove-duplicates"
+    },
+    {
+      "name": "nginx access log ips",
+      "input": "192.168.1.10 - - [07/Nov/2026] \"GET /\"\n10.0.0.5 - - [07/Nov/2026] \"GET /x\"",
+      "expectTop3": "extract-ip"
+    },
+    {
+      "name": "csv table",
+      "input": "name,email,age\nAn,an@x.com,30\nBinh,b@x.com,25",
+      "expectTop3": "csv-to-json"
+    },
+    {
+      "name": "messy whitespace list",
+      "input": "  a  \n\n\n b\n\nc   \n",
+      "expectTop3": "clean-lines"
+    },
+    {
+      "name": "account dump user|pass|mail|url with duplicates (dogfood 2026-11-07)",
+      "input": "acc01|Pass@123|acc01@gmail.com|https://facebook.com/acc01\nacc02|Pass@456|acc02@gmail.com|https://facebook.com/acc02\nacc01|Pass@123|acc01@gmail.com|https://facebook.com/acc01",
+      "expectTop3": "split-columns"
+    },
+    {
+      "name": "links → their domains",
+      "input": "visit https://shop.example.com/a then https://blog.example.org/b",
+      "expectTop3": "extract-domains"
+    },
+    {
+      "name": "pipe table → pick columns",
+      "input": "user|pass|mail\nu1|p1|m1\nu2|p2|m2",
+      "expectTop3": "select-columns"
+    },
+    {
+      "name": "plain list → CSV",
+      "input": "apple\nbanana\ncherry",
+      "expectTop3": "list-to-csv"
+    },
+    {
+      "name": "prose with one comma is not a table",
+      "input": "Hello, world",
+      "expectNotSuggested": [
+        "split-columns",
+        "select-columns",
+        "csv-to-json"
+      ]
+    },
+    {
+      "name": "sentence with a comma and a semicolon is not a table",
+      "input": "We met on Monday, then left; it was fine.",
+      "expectNotSuggested": [
+        "split-columns",
+        "select-columns",
+        "csv-to-json"
+      ]
+    },
+    {
+      "name": "log timestamps are not colon columns",
+      "input": "2026-11-07 10:00:01 ERROR db timeout\n2026-11-07 10:00:02 INFO ok",
+      "expectNotSuggested": [
+        "split-columns",
+        "select-columns"
+      ]
+    },
+    {
+      "name": "log4j timestamps with milliseconds are not columns",
+      "input": "10:00:01,123 INFO start\n10:00:02,456 WARN slow",
+      "expectNotSuggested": [
+        "split-columns",
+        "select-columns",
+        "csv-to-json"
+      ]
+    },
+    {
+      "name": "html entities are not semicolon columns",
+      "input": "<p>Tom &amp; Jerry</p>\n<p>A &lt; B</p>",
+      "expectNotSuggested": [
+        "split-columns",
+        "select-columns",
+        "csv-to-json"
+      ]
+    },
+    {
+      "name": "url list: the scheme colon is not a column",
+      "input": "https://a.com/x\nhttps://b.com/y\nhttps://c.com/z",
+      "expectTop3": "extract-urls",
+      "expectNotSuggested": [
+        "split-columns",
+        "select-columns"
+      ]
+    },
+    {
+      "name": "windows paths are not colon columns",
+      "input": "C:\\Users\\an\\file.txt\nD:\\data\\b.csv",
+      "expectNotSuggested": [
+        "split-columns",
+        "select-columns"
+      ]
+    },
+    {
+      "name": "ipv6 list → extract-ip, not colon columns",
+      "input": "2001:db8::1\nfe80::1\n::ffff:10.0.0.1",
+      "expectTop3": "extract-ip",
+      "expectNotSuggested": [
+        "split-columns",
+        "select-columns"
+      ]
+    },
+    {
+      "name": "invalid dotted quad is not an IP",
+      "input": "999.999.999.999",
+      "expectNotSuggested": [
+        "extract-ip"
+      ]
+    },
+    {
+      "name": "hex hash is not base64",
+      "input": "deadbeefcafebabe1234567890abcdef",
+      "expectNotSuggested": [
+        "base64"
+      ]
+    },
+    {
+      "name": "uuid is not base64",
+      "input": "550e8400-e29b-41d4-a716-446655440000",
+      "expectNotSuggested": [
+        "base64"
+      ]
+    },
+    {
+      "name": "MIME-wrapped base64 → base64, not a list",
+      "input": "VGhpcyBpcyBhIGxvbmcgdGV4dCB0aGF0IGlzIHdyYXBwZWQgYWNyb3NzIHNldmVy\nYWwgbGluZXMgbGlrZSBNSU1FIGVtYWlsIGJvZGllcyBkby4gSXQga2VlcHMgZ29p\nbmcgb24gYW5kIG9uIGZvciBhIHdoaWxlLg==",
+      "expectTop3": "base64",
+      "expectNotSuggested": [
+        "list-to-csv"
+      ]
+    },
+    {
+      "name": "JSON Lines is not colon columns or one JSON document",
+      "input": "{\"a\":1,\"b\":2}\n{\"a\":3,\"b\":4}",
+      "expectNotSuggested": [
+        "split-columns",
+        "select-columns",
+        "json-format"
+      ]
+    },
+    {
+      "name": "bare hostnames → extract-domains",
+      "input": "example.com\nshop.example.org\napi.example.net",
+      "expectTop3": "extract-domains"
+    },
+    {
+      "name": "email header line → extract-emails, not colon columns",
+      "input": "From: \"An\" <an@x.com>",
+      "expectTop3": "extract-emails",
+      "expectNotSuggested": [
+        "split-columns",
+        "select-columns"
+      ]
+    },
+    {
+      "name": "Unicode email address",
+      "input": "liên hệ: nguyễn@ví-dụ.vn",
+      "expectTop3": "extract-emails",
+      "expectNotSuggested": [
+        "split-columns"
+      ]
+    },
+    {
+      "name": "proxy list ip:port still splits on colon",
+      "input": "1.2.3.4:8080\n5.6.7.8:3128",
+      "expectTop3": "extract-ip"
+    },
+    {
+      "name": "user:pass combos still split on colon",
+      "input": "user1:pass1\nuser2:pass2",
+      "expectTop3": "split-columns"
+    },
+    {
+      "name": "key: value lines still split on colon",
+      "input": "name: An\nage: 30\ncity: Hanoi",
+      "expectTop3": "split-columns"
+    },
+    {
+      "name": "one line with three fields is delimited",
+      "input": "red,green,blue",
+      "expectTop3": "split-columns"
+    },
+    {
+      "name": "csv with a time column still splits on comma",
+      "input": "id,time,status\n1,10:30,ok\n2,11:45,fail",
+      "expectTop3": "csv-to-json"
+    },
+    {
+      "name": "csv with ISO timestamps still splits on comma",
+      "input": "2026-11-07T10:00:01Z,login,ok\n2026-11-07T10:05:00Z,logout,ok",
+      "expectTop3": "split-columns"
+    }
+  ]
+}

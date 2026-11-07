@@ -1,0 +1,39 @@
+{
+  "$schema": "../golden.schema.json",
+  "tool": "extract-emails",
+  "cases": [
+    {
+      "name": "emails: basic, + tag, dedupe, lowercase domain",
+      "input": "Contact: John <john.doe+news@Example.COM>, jane@sub.example.co.uk; again john.doe+news@example.com.",
+      "expect": {
+        "output": "john.doe+news@example.com\njane@sub.example.co.uk"
+      }
+    },
+    {
+      "name": "emails: unicode + zero-width",
+      "edge": true,
+      "input": "nguyễn@ví-dụ.vn and te​st@mail.io",
+      "expect": {
+        "output": "nguyễn@ví-dụ.vn\ntest@mail.io"
+      }
+    },
+    {
+      "name": "emails: rejects double dot and trailing punctuation",
+      "edge": true,
+      "input": "bad..dot@x.com good@x.com, end@x.org.",
+      "expect": {
+        "output": "good@x.com\nend@x.org"
+      }
+    },
+    {
+      "name": "emails: none",
+      "input": "no emails here @ all",
+      "expect": {
+        "output": "",
+        "warnings": [
+          "NO_MATCH"
+        ]
+      }
+    }
+  ]
+}

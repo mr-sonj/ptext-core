@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>PText core — browser smoke harness</title>
+  <style>body{font:14px system-ui;margin:2rem;max-width:900px}textarea{width:100%;height:120px}pre{background:#f4f4f4;padding:.5rem;white-space:pre-wrap}.ok{color:green}.fail{color:#c00}</style>
+</head>
+<body>
+  <h1>PText core — browser harness</h1>
+  <p>Serve the repo root (<code>npx serve .</code> or <code>python3 -m http.server</code>) after <code>pnpm build</code>, then open <code>/examples/browser/</code>.</p>
+  <textarea id="in">Contact a@x.com, b@y.io — https://ptext.org</textarea>
+  <div id="sugg"></div>
+  <pre id="out"></pre>
+  <h2>Golden parity</h2>
+  <div id="golden">running…</div>
+  <script type="module">
+    import { suggestTools, runTool, listTools } from '../../packages/core/dist/index.js';
+    const $ = (id) => document.getElementById(id);
+    const render = () => {
+      const { suggestions } = suggestTools($('in').value);
+      $('sugg').innerHTML = '';
+      for (const s of suggestions) {
+        const b = document.createElement('button');
+        b.textContent = `${s.tool} (${s.score})`;
+        b.onclick = () => { try { $('out').textContent = runTool(s.tool, $('in').value, s.options).output; } catch (e) { $('out').textContent = `${e.code}: ${e.message}`; } };
+        $('sugg').append(b, ' ');
+      }
+    };
+    $('in').oninput = render; render();
+
+    // Same contract as fixtures/load.ts: one file per tool + _registry.json, line arrays joined, warnings exact.
+    const text = (t) => (Array.isArray(t) ? t.join('\n') : t);
+    const files = [...listTools().map((t) => t.id), '_registry'];
+    const cases = [];
+    for (const f of files) {
+      const doc = await (await fetch(`../../fixtures/golden/${f}.json`)).json();
+      for (const c of doc.cases) cases.push({ ...c, tool: c.tool ?? doc.tool });
+    }
+    let pass = 0; const fails = [];
+    for (const c of cases) {
+      try {
+        const r = runTool(c.tool, text(c.input), c.options);
+        const ok = !c.expectError && r.output === text(c.expect.output) && JSON.stringify(r.warnings.map((w) => w.code)) === JSON.stringify(c.expect.warnings ?? []);
+        if (ok) pass++; else fails.push(c.name);
+      } catch (e) { if (c.expectError === e.code) pass++; else fails.push(c.name); }
+    }
+    $('golden').innerHTML = `<b class="${fails.length ? 'fail' : 'ok'}">${pass}/${cases.length} pass</b>` + (fails.length ? `<pre>${fails.join('\n')}</pre>` : '');
+  </script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+{
+  "name": "ptext-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "PText core — Paste anything. Get clean data. Deterministic text tools for browser, Workers, Node, MCP and AI apps.",
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@10.30.3",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mr-sonj/ptext-core.git"
+  },
+  "license": "MIT",
+  "scripts": {
+    "build": "pnpm --filter './packages/*' -r run build",
+    "test": "vitest run",
+    "test:tool": "vitest run -t",
+    "typecheck": "pnpm --filter './packages/*' -r run typecheck",
+    "check": "pnpm build && pnpm test",
+    "new-tool": "node scripts/new-tool.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  }
+}

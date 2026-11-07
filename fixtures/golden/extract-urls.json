@@ -1,0 +1,24 @@
+{
+  "$schema": "../golden.schema.json",
+  "tool": "extract-urls",
+  "cases": [
+    {
+      "name": "urls: trailing punctuation and parentheses",
+      "input": "See (https://example.com/a_(b)) and https://x.io/path?q=1, also www.test.vn.",
+      "expect": {
+        "output": "https://example.com/a_(b)\nhttps://x.io/path?q=1\nwww.test.vn"
+      }
+    },
+    {
+      "name": "urls: no http(s) or www links",
+      "edge": true,
+      "input": "ftp://files.example.com and plain example.com text",
+      "expect": {
+        "output": "",
+        "warnings": [
+          "NO_MATCH"
+        ]
+      }
+    }
+  ]
+}

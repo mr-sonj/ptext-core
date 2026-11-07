@@ -1,0 +1,66 @@
+{
+  "$schema": "../golden.schema.json",
+  "tool": "select-columns",
+  "cases": [
+    {
+      "name": "select-columns: reorder",
+      "options": {
+        "columns": "3,1"
+      },
+      "input": "u1|p1|m1\nu2|p2|m2",
+      "expect": {
+        "output": "m1|u1\nm2|u2"
+      }
+    },
+    {
+      "name": "select-columns: last column + missing cells",
+      "options": {
+        "columns": "-1,4",
+        "delimiter": "comma",
+        "outputDelimiter": "comma"
+      },
+      "input": "a,b,c\nd,e,f",
+      "expect": {
+        "output": "c,\nf,",
+        "warnings": [
+          "MISSING_CELLS"
+        ]
+      }
+    },
+    {
+      "name": "select-columns: open-ended range clamped to table width",
+      "options": {
+        "columns": "2-999999",
+        "delimiter": "comma",
+        "outputDelimiter": "comma"
+      },
+      "input": "a,b,c\nd,e,f",
+      "expect": {
+        "output": "b,c\ne,f",
+        "warnings": [
+          "RANGE_CLAMPED"
+        ]
+      }
+    },
+    {
+      "name": "select-columns: bad spec",
+      "options": {
+        "columns": "x"
+      },
+      "input": "a|b",
+      "expectError": "INVALID_OPTION"
+    },
+    {
+      "name": "select-columns: -1 is the last cell of each row",
+      "edge": true,
+      "options": {
+        "columns": "-1",
+        "delimiter": "comma"
+      },
+      "input": "a,b,c\nd,e",
+      "expect": {
+        "output": "c\ne"
+      }
+    }
+  ]
+}

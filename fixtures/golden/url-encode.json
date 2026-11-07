@@ -1,0 +1,29 @@
+{
+  "$schema": "../golden.schema.json",
+  "tool": "url-encode",
+  "cases": [
+    {
+      "name": "url: decode per line",
+      "input": "a%20b%26c\n%E1%BA%A1",
+      "expect": {
+        "output": "a b&c\nạ"
+      }
+    },
+    {
+      "name": "url: form encode",
+      "options": {
+        "direction": "encode",
+        "mode": "form"
+      },
+      "input": "a b&c",
+      "expect": {
+        "output": "a+b%26c"
+      }
+    },
+    {
+      "name": "url: malformed",
+      "input": "%E0%A4%A",
+      "expectError": "INVALID_INPUT"
+    }
+  ]
+}

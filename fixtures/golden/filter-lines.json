@@ -1,0 +1,62 @@
+{
+  "$schema": "../golden.schema.json",
+  "tool": "filter-lines",
+  "cases": [
+    {
+      "name": "filter-lines: contains (case-insensitive default)",
+      "options": {
+        "pattern": "ERROR"
+      },
+      "input": "info ok\nerror: boom\nERROR again",
+      "expect": {
+        "output": "error: boom\nERROR again"
+      }
+    },
+    {
+      "name": "filter-lines: regex invert",
+      "options": {
+        "mode": "regex",
+        "pattern": "^#",
+        "invert": true
+      },
+      "input": "# comment\nvalue=1\n#x\nvalue=2",
+      "expect": {
+        "output": "value=1\nvalue=2"
+      }
+    },
+    {
+      "name": "filter-lines: invalid regex",
+      "options": {
+        "mode": "regex",
+        "pattern": "("
+      },
+      "input": "x",
+      "expectError": "INVALID_OPTION"
+    },
+    {
+      "name": "filter-lines: missing pattern",
+      "input": "x",
+      "expectError": "INVALID_OPTION"
+    },
+    {
+      "name": "filter-lines: regex with a repeated group",
+      "options": {
+        "mode": "regex",
+        "pattern": "^(foo|bar)+$"
+      },
+      "input": "foobar\nfoo\nbaz",
+      "expect": {
+        "output": "foobar\nfoo"
+      }
+    },
+    {
+      "name": "filter-lines: nested quantifier regex is rejected",
+      "options": {
+        "mode": "regex",
+        "pattern": "^(a+)+$"
+      },
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa!",
+      "expectError": "INVALID_OPTION"
+    }
+  ]
+}

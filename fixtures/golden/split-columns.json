@@ -1,0 +1,97 @@
+{
+  "$schema": "../golden.schema.json",
+  "tool": "split-columns",
+  "cases": [
+    {
+      "name": "split-columns: pipe auto-detect",
+      "input": "user1|pass,1|a@x.com\nuser2|p2|b@x.com",
+      "expect": {
+        "output": "user1,\"pass,1\",a@x.com\nuser2,p2,b@x.com"
+      }
+    },
+    {
+      "name": "split-columns: quoted CSV with newline",
+      "edge": true,
+      "options": {
+        "delimiter": "comma",
+        "outputDelimiter": "tab"
+      },
+      "input": "name,note\n\"Doe, John\",\"line1\nline2\"",
+      "expect": {
+        "output": "name\tnote\nDoe, John\t\"line1\nline2\""
+      }
+    },
+    {
+      "name": "split-columns: ragged rows warning",
+      "options": {
+        "delimiter": "pipe"
+      },
+      "input": "a|b|c\nd|e",
+      "expect": {
+        "output": "a,b,c\nd,e",
+        "warnings": [
+          "RAGGED_ROWS"
+        ]
+      }
+    },
+    {
+      "name": "split-columns: auto ignores the colon of URL schemes",
+      "input": [
+        "https://a.com/x",
+        "https://b.com/y"
+      ],
+      "expect": {
+        "output": [
+          "https://a.com/x",
+          "https://b.com/y"
+        ],
+        "warnings": [
+          "DELIMITER_NOT_DETECTED"
+        ]
+      }
+    },
+    {
+      "name": "split-columns: auto ignores the colons of clock times",
+      "input": [
+        "2026-11-07 10:00:01 ERROR db",
+        "2026-11-07 10:00:02 INFO ok"
+      ],
+      "expect": {
+        "output": [
+          "2026-11-07 10:00:01 ERROR db",
+          "2026-11-07 10:00:02 INFO ok"
+        ],
+        "warnings": [
+          "DELIMITER_NOT_DETECTED"
+        ]
+      }
+    },
+    {
+      "name": "split-columns: auto picks the pipe next to IPv6 addresses",
+      "edge": true,
+      "input": [
+        "2001:db8::1|web",
+        "fe80::1|db"
+      ],
+      "expect": {
+        "output": [
+          "2001:db8::1,web",
+          "fe80::1,db"
+        ]
+      }
+    },
+    {
+      "name": "split-columns: ip:port still splits on the colon",
+      "input": [
+        "1.2.3.4:8080",
+        "5.6.7.8:3128"
+      ],
+      "expect": {
+        "output": [
+          "1.2.3.4,8080",
+          "5.6.7.8,3128"
+        ]
+      }
+    }
+  ]
+}

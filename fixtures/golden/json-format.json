@@ -1,0 +1,29 @@
+{
+  "$schema": "../golden.schema.json",
+  "tool": "json-format",
+  "cases": [
+    {
+      "name": "json: beautify",
+      "input": "{\"b\":1,\"a\":[1,2]}",
+      "expect": {
+        "output": "{\n  \"b\": 1,\n  \"a\": [\n    1,\n    2\n  ]\n}"
+      }
+    },
+    {
+      "name": "json: minify + sortKeys",
+      "options": {
+        "mode": "minify",
+        "sortKeys": true
+      },
+      "input": "{ \"b\": 1, \"a\": { \"d\": 2, \"c\": 3 } }",
+      "expect": {
+        "output": "{\"a\":{\"c\":3,\"d\":2},\"b\":1}"
+      }
+    },
+    {
+      "name": "json: invalid",
+      "input": "{\"a\":1,}",
+      "expectError": "INVALID_INPUT"
+    }
+  ]
+}

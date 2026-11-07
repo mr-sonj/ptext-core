@@ -1,0 +1,48 @@
+{
+  "$schema": "../golden.schema.json",
+  "tool": "extract-domains",
+  "cases": [
+    {
+      "name": "domains: from urls, emails and text; strip www",
+      "input": "https://www.Shop.example.com.vn/x a@mail.google.com visit sonjj.com or app.js",
+      "expect": {
+        "output": "shop.example.com.vn\nmail.google.com\nsonjj.com",
+        "warnings": [
+          "FILENAME_LIKE_SKIPPED"
+        ]
+      }
+    },
+    {
+      "name": "domains: fromEmails=false",
+      "options": {
+        "fromEmails": false
+      },
+      "input": "a@mail.google.com https://ptext.org",
+      "expect": {
+        "output": "ptext.org"
+      }
+    },
+    {
+      "name": "domains: file-like names are skipped and reported",
+      "edge": true,
+      "input": "see example.md, python.py, get.sh, app.js",
+      "expect": {
+        "output": "",
+        "warnings": [
+          "NO_MATCH",
+          "FILENAME_LIKE_SKIPPED"
+        ]
+      }
+    },
+    {
+      "name": "domains: skipFileNames=false keeps .md/.py/.sh/.js names",
+      "options": {
+        "skipFileNames": false
+      },
+      "input": "see example.md, python.py, get.sh, app.js",
+      "expect": {
+        "output": "example.md\npython.py\nget.sh\napp.js"
+      }
+    }
+  ]
+}
