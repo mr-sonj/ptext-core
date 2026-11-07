@@ -257,7 +257,7 @@ packages/mcp      transport-agnostic server · fetch handler (HTTP) · stdio bin
 packages/cli      ptext command (runCli is a pure, tested function)
 fixtures/         golden/<id>.json (tool contract) · suggest.json (profiler benchmark)
 examples/         cloudflare-worker · laravel · browser (parity harness)
-scripts/          new-tool.mjs (scaffold) · release.mjs (versioning, changelog, release notes)
+scripts/          new-tool.mjs (scaffold) · release.mjs (cut a release: version, changelog, tag)
 ```
 
 ## Development
