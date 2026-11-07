@@ -33,14 +33,10 @@ jobs:
       - run: pnpm build
       - run: pnpm typecheck
       - run: pnpm test
-      - name: CLI runs a tool
-        run: |
-          out=$(printf 'Mail a@x.com or b@y.io, again a@x.com\n' | node packages/cli/dist/cli.js run extract-emails)
-          test "$out" = "$(printf 'a@x.com\nb@y.io')"
-      - name: MCP stdio answers initialize
-        run: |
-          printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"ci","version":"0"}}}' \
-            | timeout 10 node packages/mcp/dist/stdio.js | grep -q '"serverInfo"'
+      # Packs the three packages as the npm job does, installs the tarballs with npm and runs the library, `ptext` and
+      # the MCP server. A tag that fails here never becomes a GitHub release or an npm version.
+      - name: Packages install and run
+        run: node scripts/pack-check.mjs
 
   worker:
     name: Cloudflare Worker bundle (dry run)
@@ -116,3 +112,6 @@ jobs:
             (cd "packages/$p" && pnpm pack --pack-destination "$RUNNER_TEMP")
             npm publish "$RUNNER_TEMP/ptext-$p-$v.tgz" --access public --provenance
           done
+      # The README's commands, against npm: npm install @ptext/core, npm install -g @ptext/cli, npx -y @ptext/mcp.
+      - name: Published packages install and run
+        run: node scripts/pack-check.mjs --from-npm="${{ github.ref_name }}"

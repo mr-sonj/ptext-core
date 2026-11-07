@@ -14,7 +14,7 @@ pnpm install
 pnpm build && pnpm test
 ```
 
-Run `pnpm build && pnpm test` before you open a pull request. CI runs the same commands on Node 22, 24 and 26, smoke-tests the built CLI and MCP server, and bundles the Cloudflare Worker example.
+Run `pnpm build && pnpm test` before you open a pull request. CI runs the same commands on Node 22, 24 and 26, packs the three packages, installs the tarballs with npm and runs the library, the `ptext` command and the MCP server from them, and bundles the Cloudflare Worker example.
 
 ## Ground rules
 
