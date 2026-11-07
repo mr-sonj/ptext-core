@@ -2,6 +2,12 @@
 
 All notable changes are listed here. Each entry is written from the Conventional Commit messages of that release (see [Releases](README.md#releases)). Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.1.2] - 2026-11-07
+
+### Fixes
+
+- **release:** release notes link the public commits (ea063ea)
+
 ## [0.1.1] - 2026-11-07
 
 ### Fixes
