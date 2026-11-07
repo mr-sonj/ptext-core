@@ -110,7 +110,14 @@ jobs:
           for p in core mcp cli; do   # core first: mcp and cli depend on it
             if npm view "@ptext/$p@$v" version >/dev/null 2>&1; then echo "@ptext/$p@$v is already on npm"; continue; fi
             (cd "packages/$p" && pnpm pack --pack-destination "$RUNNER_TEMP")
-            npm publish "$RUNNER_TEMP/ptext-$p-$v.tgz" --access public --provenance
+            # Sigstore's transparency log sometimes answers 500 (TLOG_CREATE_ENTRY_ERROR). Retry, unless the failed
+            # attempt got the version onto npm after all.
+            for attempt in 1 2 3; do
+              npm publish "$RUNNER_TEMP/ptext-$p-$v.tgz" --access public --provenance && break
+              if [ "$attempt" = 3 ]; then exit 1; fi
+              sleep 30
+              if npm view "@ptext/$p@$v" version >/dev/null 2>&1; then break; fi
+            done
           done
       # The README's commands, against npm: npm install @ptext/core, npm install -g @ptext/cli, npx -y @ptext/mcp.
       - name: Published packages install and run
