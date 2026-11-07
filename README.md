@@ -95,13 +95,7 @@ npm install -g @ptext/cli      # `ptext` command
 npx -y @ptext/mcp              # MCP server over stdio
 ```
 
-> **Not on npm yet.** Until the first npm release, build from source:
-> ```bash
-> git clone https://github.com/mr-sonj/ptext-core.git && cd ptext-core
-> pnpm install && pnpm build
-> node packages/cli/dist/cli.js list
-> ```
-> In the examples below, use `node packages/cli/dist/cli.js` wherever they say `ptext`.
+The CLI and the MCP server need Node.js 22 or newer. To upgrade, run the same `npm install` with `@latest` (for example `npm install -g @ptext/cli@latest`).
 
 ## Quick start
 
@@ -435,7 +429,7 @@ Browser parity harness: run `pnpm build`, serve the repo root (`npx serve .`), t
 
 Versions follow [Semantic Versioning](https://semver.org/) and come from [Conventional Commits](https://www.conventionalcommits.org/): `feat!:` / `BREAKING CHANGE:` → major (minor while on `0.x`), `feat:` → minor, anything else → patch. Only `feat`, `fix`, `perf`, `revert` and breaking commits call for a release; `docs`, `test`, `chore`, `ci`, `build` and `refactor` commits go out with the next one.
 
-The maintainer pushes `main` with `node scripts/release.mjs ship` (`--dry-run` previews it). When a release is due, it first writes the version to every `package.json` and to `VERSION`, adds a [CHANGELOG.md](CHANGELOG.md) section and commits that as `chore(release): vX.Y.Z`, tagged `vX.Y.Z`. CI builds and tests the tag, then publishes a [GitHub release](https://github.com/mr-sonj/ptext-core/releases) with that changelog section. Packages are not published to npm yet.
+The maintainer pushes `main` with `node scripts/release.mjs ship` (`--dry-run` previews it). When a release is due, it first writes the version to every `package.json` and to `VERSION`, adds a [CHANGELOG.md](CHANGELOG.md) section and commits that as `chore(release): vX.Y.Z`, tagged `vX.Y.Z`. CI builds and tests the tag and checks that the packed packages install and run, then publishes a [GitHub release](https://github.com/mr-sonj/ptext-core/releases) with that changelog section and publishes `@ptext/core`, `@ptext/mcp` and `@ptext/cli` to npm at the same version, with provenance.
 
 ## Contributing
 
