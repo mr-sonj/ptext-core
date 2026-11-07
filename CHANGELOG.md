@@ -2,6 +2,13 @@
 
 All notable changes are listed here. Each entry is written from the Conventional Commit messages of that release (see [Releases](README.md#releases)). Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.4.1] - 2026-11-07
+
+### Other
+
+- ci: check that packed packages install and run before release (94ee848)
+- docs: install from npm (d9c6a43)
+
 ## [0.4.0] - 2026-11-07
 
 ### Features

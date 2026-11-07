@@ -1,6 +1,6 @@
 {
   "name": "@ptext/core",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Deterministic text tools: remove duplicate lines, CSV to JSON, extract emails, URLs, domains and IPs, clean lines, split columns, Base64/URL decode, JSON format and validate. Zero dependencies; runs in browser, Cloudflare Workers, Node, Deno, Bun.",
   "type": "module",
   "engines": { "node": ">=22" },
