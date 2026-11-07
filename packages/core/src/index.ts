@@ -6,4 +6,4 @@ export { rankPrompt, rankResponseSchema, parseRankResponse, llmRouter, type Rank
 export { jevQuestions, jevRequest, jevSuggestions, jevRouter, JEV_URL, JEV_MODEL, type JevBody, type JevQuestion, type JevOptions, type JevPost } from './jev.js';
 export { openAITools, anthropicTools, handleToolCall, modelDescription, toolInputSchema, toolName, toolIdFromName } from './ai.js';
 
-export const VERSION = '0.2.0';
+export const VERSION = '0.3.0';

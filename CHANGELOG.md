@@ -2,6 +2,18 @@
 
 All notable changes are listed here. Each entry is written from the Conventional Commit messages of that release (see [Releases](README.md#releases)). Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] - 2026-11-07
+
+### Features
+
+- enhance routing and suggestion mechanisms with structured intent support (5881803)
+
+### Other
+
+- docs: list BLANK_ROWS_SKIPPED among the warning codes (708aa91)
+- build: cut releases from main; pull requests are squash-merged (6e33d20)
+- docs: name the release command in the project layout (5c9bbd0)
+
 ## [0.2.0] - 2026-11-07
 
 ### Breaking changes
