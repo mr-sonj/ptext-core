@@ -5,6 +5,13 @@
 // section and is tagged vX.Y.Z. CI turns the tag into a GitHub release with:
 //
 //   node scripts/release.mjs notes <version>   prints that version's CHANGELOG section; fails if a version file disagrees
+//
+// A maintainer cuts the release on a clean, up-to-date `main`:
+//
+//   node scripts/release.mjs cut [--dry-run] [--bump=auto|patch|minor|major] [--skip-tests] [--no-push] [--remote=origin]
+//       Reads the commits since the tag of the current version, runs `pnpm build && pnpm test`, writes the release,
+//       commits `chore(release): vX.Y.Z`, tags it and pushes main + tag in one atomic push.
+import { execFileSync } from 'node:child_process';
 import { readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
@@ -102,10 +109,76 @@ export function applyRelease(root, { version, date, notes }) {
   return result.notes;
 }
 
+/** Commits in `range`, oldest first. Merge commits are left out: their branches' commits are listed instead. */
+function commitsIn(git, range) {
+  return git('log', '--reverse', '--no-merges', '--format=%H%x00%s%x00%b%x1e', range)
+    .split('\x1e')
+    .map((r) => r.trim())
+    .filter(Boolean)
+    .map((r) => {
+      const [sha, subject, body] = r.split('\0');
+      return { sha, subject, body: body.trim() };
+    });
+}
+
+/** Cut a release on main: version, changelog, `chore(release)` commit, tag, push. @param {URL} root */
+function cut(root, flags) {
+  const cwd = fileURLToPath(root);
+  const git = (...args) => execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+  const log = (s) => process.stdout.write(`${s}\n`);
+  const remote = flags.remote || 'origin';
+  const bump = flags.bump || 'auto';
+  if (!['auto', 'patch', 'minor', 'major'].includes(bump)) throw new Error(`--bump must be auto, patch, minor or major, not "${bump}"`);
+
+  const branch = git('rev-parse', '--abbrev-ref', 'HEAD');
+  if (branch !== 'main') throw new Error(`cut a release on main, not ${branch}`);
+  if (git('status', '--porcelain', '--untracked-files=no')) throw new Error('main has uncommitted changes; commit them first');
+  if (!flags['no-push']) {
+    git('fetch', '-q', remote, 'main');
+    if (git('rev-list', '--count', 'HEAD..FETCH_HEAD') !== '0') throw new Error(`${remote}/main has commits that main does not; pull first`);
+  }
+
+  const current = JSON.parse(readFileSync(new URL('package.json', root), 'utf8')).version;
+  try {
+    git('rev-parse', '--verify', '-q', `refs/tags/v${current}`);
+  } catch {
+    throw new Error(`no tag v${current} for the current version`);
+  }
+  const commits = commitsIn(git, `v${current}..HEAD`);
+  if (commits.length === 0 && bump === 'auto') return log(`nothing to release since v${current}`);
+  const version = bump === 'auto' ? autoVersion(current, commits) : nextVersion(current, bump);
+  const notes = releaseNotes(commits);
+  log(`${commits.length} commit(s) since v${current}:`);
+  for (const c of commits) log(`  ${c.sha.slice(0, 7)} ${c.subject}`);
+  log(`release: v${current} → v${version}`);
+  if (flags['dry-run']) return log(`\n${notes || '- Maintenance release.'}`);
+
+  if (!flags['skip-tests']) {
+    execFileSync('pnpm', ['build'], { cwd, stdio: 'inherit' });
+    execFileSync('pnpm', ['test'], { cwd, stdio: 'inherit' });
+  }
+  applyRelease(root, { version, date: new Date().toISOString().slice(0, 10), notes });
+  git('commit', '-q', '-m', `chore(release): v${version}`, '--', ...VERSION_FILES, VERSION_TS, 'CHANGELOG.md');
+  git('tag', '-a', `v${version}`, '-m', `v${version}`);
+  if (flags['no-push']) return log(`tagged v${version}, not pushed (--no-push). Later: git push --atomic ${remote} main v${version}`);
+  git('push', '-q', '--atomic', remote, 'refs/heads/main:refs/heads/main', `refs/tags/v${version}`);
+  log(`pushed main + v${version} → ${remote}`);
+}
+
 function main() {
   const root = new URL('../', import.meta.url);
-  const [cmd, arg] = process.argv.slice(2);
-  if (cmd !== 'notes' || !arg) throw new Error('usage: node scripts/release.mjs notes <version>');
+  const [cmd, arg, ...rest] = process.argv.slice(2);
+  if (cmd === 'cut') {
+    const flags = Object.fromEntries(
+      [arg, ...rest].filter(Boolean).map((a) => {
+        const m = /^--(dry-run|bump|skip-tests|no-push|remote)(?:=(.*))?$/.exec(a);
+        if (!m) throw new Error(`unknown argument ${a}`);
+        return [m[1], m[2] ?? true];
+      }),
+    );
+    return cut(root, flags);
+  }
+  if (cmd !== 'notes' || !arg) throw new Error('usage: node scripts/release.mjs notes <version> | cut [--dry-run] [--bump=…] [--skip-tests] [--no-push]');
   const version = arg.replace(/^v/, '');
   const wrong = Object.entries(readVersions(root)).filter(([, v]) => v !== version);
   if (wrong.length) throw new Error(`v${version} does not match ${wrong.map(([f, v]) => `${f} (${v})`).join(', ')}`);

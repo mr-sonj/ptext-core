@@ -33,6 +33,8 @@ Use [Conventional Commits](https://www.conventionalcommits.org/). Releases read 
 | `docs:` `test:` `refactor:` `chore:` `ci:` … | `docs: clarify MCP setup` | patch |
 | `feat!:` or a `BREAKING CHANGE:` footer | `feat!: rename stats.count` | major (minor while on 0.x) |
 
+Pull requests are squash-merged, so the pull request title becomes the commit message: write it in this form too.
+
 ## Adding or changing a tool
 
 A tool is two files:
@@ -137,7 +139,7 @@ For every tool, the tests check that:
 ## Pull requests
 
 - Keep each pull request focused on one tool or one fix.
-- The maintainer lands accepted pull requests on `main` with you as the commit author, then closes the pull request with a link to the commit. It may not show as "merged" on GitHub.
+- Accepted pull requests are squash-merged into `main` with you as the commit author. The title becomes the commit message and the changelog line, so keep it a Conventional Commit; the maintainer may edit it before merging.
 - For a bug in a tool's output, start with a failing golden case that reproduces it.
 - Describe any change to existing output or warning codes.
 - Do not add runtime dependencies to `@ptext/core`.

@@ -285,7 +285,7 @@ Browser parity harness: run `pnpm build`, serve the repo root (`npx serve .`), t
 
 Versions follow [Semantic Versioning](https://semver.org/) and come from [Conventional Commits](https://www.conventionalcommits.org/): `feat!:` / `BREAKING CHANGE:` → major (minor while on `0.x`), `feat:` → minor, anything else → patch.
 
-Each release is one `chore(release): vX.Y.Z` commit that writes the version to every `package.json` and to `VERSION` and adds a [CHANGELOG.md](CHANGELOG.md) section, tagged `vX.Y.Z`. CI builds and tests the tag, then publishes a [GitHub release](https://github.com/mr-sonj/ptext-core/releases) with that changelog section. Packages are not published to npm yet.
+Each release is one `chore(release): vX.Y.Z` commit that writes the version to every `package.json` and to `VERSION` and adds a [CHANGELOG.md](CHANGELOG.md) section, tagged `vX.Y.Z`. A maintainer cuts it from `main` with `node scripts/release.mjs cut` (`--dry-run` previews it). CI builds and tests the tag, then publishes a [GitHub release](https://github.com/mr-sonj/ptext-core/releases) with that changelog section. Packages are not published to npm yet.
 
 ## Contributing
 

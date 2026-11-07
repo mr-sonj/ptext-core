@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { cpSync, mkdirSync, mkdtempSync, readFileSync } from 'node:fs';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -75,5 +75,94 @@ describe('release script', () => {
     const cli = (v: string) => execFileSync('node', [join(dir, 'scripts/release.mjs'), 'notes', v], { encoding: 'utf8', stdio: 'pipe' });
     expect(cli('v9.9.9')).toBe('### Fixes\n\n- x (abc1234)\n');
     expect(() => cli('v9.9.8')).toThrow(/does not match/);
+  });
+});
+
+describe('release cut', () => {
+  // A throwaway repo with a bare `origin`, holding just the files a release writes.
+  const base = mkdtempSync(join(tmpdir(), 'ptext-cut-'));
+  const work = join(base, 'work');
+  const sh = (cwd: string, args: string[]) => execFileSync('git', args, { cwd, encoding: 'utf8', stdio: 'pipe' }).trim();
+  const git = (...args: string[]) => sh(work, args);
+  const cut = (...args: string[]) => execFileSync('node', [join(work, 'scripts/release.mjs'), 'cut', ...args], { encoding: 'utf8', stdio: 'pipe' });
+  const fails = (fn: () => unknown) => {
+    try {
+      fn();
+    } catch (e) {
+      return String((e as { stderr?: string }).stderr ?? e);
+    }
+    throw new Error('expected a failure');
+  };
+  const commit = (file: string, text: string, msg: string) => {
+    writeFileSync(join(work, file), text);
+    git('add', file);
+    git('commit', '-q', '-m', msg);
+  };
+
+  beforeAll(() => {
+    sh(base, ['init', '-q', '--bare', '-b', 'main', 'origin.git']);
+    sh(base, ['init', '-q', '-b', 'main', 'work']);
+    for (const [k, v] of [['user.name', 'Dev'], ['user.email', 'dev@x'], ['commit.gpgsign', 'false'], ['tag.gpgSign', 'false']]) git('config', k!, v!);
+    for (const f of [...VERSION_FILES, VERSION_TS, 'CHANGELOG.md', 'scripts/release.mjs']) {
+      mkdirSync(join(work, f, '..'), { recursive: true });
+      cpSync(new URL(f, repoRoot), join(work, f));
+    }
+    applyRelease(pathToFileURL(work + '/'), { version: '0.4.0', date: '2026-11-01', notes: '- Start.' });
+    git('add', '-A');
+    git('commit', '-q', '-m', 'chore(release): v0.4.0');
+    git('tag', '-a', 'v0.4.0', '-m', 'v0.4.0');
+    git('remote', 'add', 'origin', join(base, 'origin.git'));
+    git('push', '-q', 'origin', 'main', 'v0.4.0');
+  });
+
+  it('says so when there is nothing to release', () => {
+    expect(cut('--skip-tests')).toBe('nothing to release since v0.4.0\n');
+  });
+
+  it('--dry-run previews the version and notes and writes nothing', () => {
+    commit('a.txt', 'a\n', 'fix(core): trim BOM');
+    commit('b.txt', 'b\n', 'feat(cli): add --json');
+    const head = git('rev-parse', 'HEAD');
+    const out = cut('--dry-run');
+    expect(out).toContain('release: v0.4.0 → v0.5.0');
+    expect(out).toContain(`- **cli:** add --json (${head.slice(0, 7)})`);
+    expect(git('rev-parse', 'HEAD')).toBe(head);
+    expect(git('status', '--porcelain')).toBe('');
+  });
+
+  it('refuses off main, with uncommitted changes, or behind origin', () => {
+    git('checkout', '-q', '-b', 'topic');
+    expect(fails(() => cut('--skip-tests'))).toMatch(/on main, not topic/);
+    git('checkout', '-q', 'main');
+    writeFileSync(join(work, 'a.txt'), 'changed\n');
+    expect(fails(() => cut('--skip-tests'))).toMatch(/uncommitted changes/);
+    git('checkout', '-q', '--', 'a.txt');
+
+    sh(base, ['clone', '-q', 'origin.git', 'other']);
+    const other = join(base, 'other');
+    writeFileSync(join(other, 'c.txt'), 'c\n');
+    sh(other, ['add', 'c.txt']);
+    sh(other, ['-c', 'user.name=Contributor', '-c', 'user.email=c@x', '-c', 'commit.gpgsign=false', 'commit', '-q', '-m', 'fix: merged on GitHub']);
+    sh(other, ['push', '-q', 'origin', 'main']);
+    expect(fails(() => cut('--skip-tests'))).toMatch(/origin\/main has commits that main does not; pull first/);
+    git('pull', '-q', '--rebase', 'origin', 'main');
+  });
+
+  it('writes the release, commits, tags and pushes main + tag', () => {
+    expect(cut('--skip-tests')).toContain('pushed main + v0.5.0 → origin');
+    expect(git('log', '-1', '--format=%s')).toBe('chore(release): v0.5.0');
+    expect(new Set(Object.values(readVersions(pathToFileURL(work + '/'))))).toEqual(new Set(['0.5.0']));
+    const changelog = readFileSync(join(work, 'CHANGELOG.md'), 'utf8');
+    expect(changelog).toMatch(/## \[0\.5\.0\] [^]*### Features\n\n- \*\*cli:\*\* add --json[^]*### Fixes\n\n- merged on GitHub[^]*- \*\*core:\*\* trim BOM[^]*## \[0\.4\.0\]/);
+    expect(changelog).toContain(`merged on GitHub (${git('rev-parse', '--short=7', 'HEAD~3')})`);
+    expect(sh(join(base, 'origin.git'), ['rev-parse', 'main'])).toBe(git('rev-parse', 'HEAD'));
+    expect(sh(join(base, 'origin.git'), ['rev-parse', 'v0.5.0^{commit}'])).toBe(git('rev-parse', 'HEAD'));
+  });
+
+  it('--bump forces the level; --no-push only tags', () => {
+    commit('a.txt', 'a2\n', 'docs: wording');
+    expect(cut('--skip-tests', '--bump=major', '--no-push')).toContain('tagged v1.0.0, not pushed');
+    expect(sh(join(base, 'origin.git'), ['tag'])).toBe('v0.4.0\nv0.5.0');
+    expect(fails(() => cut('--bump=huge'))).toMatch(/--bump must be/);
   });
 });
