@@ -6,7 +6,30 @@ export interface CliResult {
   stderr: string;
 }
 
-const USAGE = 'Usage: ptext <list|catalog|prompt|jev|suggest|run <tool>|exec> [--option=value] [--json]\nSee: ptext list';
+const USAGE = 'Usage: ptext <list|catalog|prompt|jev|suggest|run <tool>|exec> [--option=value] [--json]\nSee: ptext --help';
+
+const HELP = `PText: paste text, get a useful result. Deterministic text tools; code writes every result.
+
+${USAGE.split('\n')[0]}
+
+Commands:
+  run <tool> [--opt=value]   Run a tool on stdin and print its output. Warnings go to stderr; --json prints the full result
+  suggest                    Rank the tools that fit the text on stdin (JSON)
+  exec                       Read {"tool","input","options"?} on stdin, print { ok, ...result } or { ok: false, error }
+  list                       Every tool with its option schema and input card (JSON)
+  catalog | prompt | jev     Catalog and ranking prompts for an AI router
+  --help | --version
+
+Examples:
+  printf 'b\\na\\nb\\n' | ptext run remove-duplicates
+  cat data.csv | ptext run csv-to-json
+  cat message.txt | ptext run extract-emails
+  echo '{"a":1}' | ptext run json-format --mode=minify
+
+Tools: ${listTools().map((t) => t.id).join(', ')}
+
+Exit codes: 0 ok · 2 usage or option error · 3 invalid input · 1 internal error
+Docs: https://github.com/mr-sonj/ptext-core#readme`;
 
 function parseFlags(args: string[]) {
   const opts: Record<string, string | boolean> = {};
@@ -78,8 +101,13 @@ export async function runCli(argv: string[], readStdin: () => Promise<string>): 
       case '--version':
       case '-v':
         return ok(VERSION);
+      case undefined:
+      case 'help':
+      case '--help':
+      case '-h':
+        return ok(HELP);
       default:
-        return { code: cmd ? 2 : 0, stdout: line(USAGE), stderr };
+        return { code: 2, stdout: line(USAGE), stderr };
     }
   } catch (e) {
     const err = errorToJSON(e);

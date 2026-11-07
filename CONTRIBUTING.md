@@ -2,6 +2,8 @@
 
 Thanks for helping. Bug reports, fixture cases for wrong output, and new tools are all welcome.
 
+PText exists so that pasted text gets an exact result: code does the work, nothing leaves the user's process, and nothing is dropped silently ([Why PText exists](README.md#why-ptext-exists)). The ground rules below protect those promises, and the tests enforce most of them.
+
 ## Setup
 
 Requirements: Node ≥ 22.12 and pnpm 10 (`corepack enable`).

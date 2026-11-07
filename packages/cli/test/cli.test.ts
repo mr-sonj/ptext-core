@@ -49,6 +49,15 @@ describe('ptext CLI', () => {
     expect((await cli([])).code).toBe(0);
   });
 
+  it('--help lists the commands, examples and every tool id', async () => {
+    for (const argv of [[], ['help'], ['--help'], ['-h']]) {
+      const r = await cli(argv);
+      expect(r.code, argv.join(' ')).toBe(0);
+      expect(r.stdout).toContain('Commands:');
+      for (const t of listTools()) expect(r.stdout).toContain(t.id);
+    }
+  });
+
   it('exit 3 for invalid input', async () => {
     expect((await cli(['run', 'base64'], '@@@')).code).toBe(3);
   });

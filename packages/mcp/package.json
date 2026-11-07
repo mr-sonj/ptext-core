@@ -1,7 +1,7 @@
 {
   "name": "@ptext/mcp",
   "version": "0.3.0",
-  "description": "PText MCP server — stdio (local) and Web-standard Streamable HTTP (Cloudflare Workers, Deno, Bun).",
+  "description": "MCP server with deterministic text tools for Claude, Cursor, Codex and other AI assistants: remove duplicate lines, CSV to JSON, extract emails, JSON format, clean text. stdio and Streamable HTTP (Cloudflare Workers, Deno, Bun).",
   "type": "module",
   "engines": { "node": ">=22" },
   "main": "./dist/index.js",
@@ -24,7 +24,7 @@
     "@modelcontextprotocol/sdk": "^1.32.2",
     "@ptext/core": "workspace:*"
   },
-  "keywords": ["mcp", "model-context-protocol", "mcp-server", "text", "extract", "csv", "json", "cloudflare-workers"],
+  "keywords": ["mcp", "mcp-server", "model-context-protocol", "claude", "cursor", "ai-tools", "text-tools", "remove-duplicates", "csv-to-json", "extract-emails", "json-formatter", "clean-text", "text", "csv", "json", "cloudflare-workers"],
   "license": "MIT",
   "author": "Sonjj",
   "homepage": "https://github.com/mr-sonj/ptext-core/tree/main/packages/mcp#readme",

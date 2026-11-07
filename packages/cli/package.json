@@ -1,7 +1,7 @@
 {
   "name": "@ptext/cli",
   "version": "0.3.0",
-  "description": "PText command line: stdin → stdout, JSON mode for PHP/Laravel, Python and shell scripts.",
+  "description": "Text tools for the terminal: remove duplicate lines, CSV to JSON, extract emails, URLs and IPs, clean lines, JSON format and validate. stdin to stdout, JSON mode for PHP/Laravel, Python and shell scripts.",
   "type": "module",
   "engines": { "node": ">=22" },
   "bin": {
@@ -15,7 +15,7 @@
   "dependencies": {
     "@ptext/core": "workspace:*"
   },
-  "keywords": ["cli", "text", "extract", "csv", "json", "base64", "laravel", "php"],
+  "keywords": ["cli", "text-tools", "text", "remove-duplicates", "dedupe", "csv-to-json", "csv", "json", "json-formatter", "extract-emails", "clean-text", "base64", "url-decode", "laravel", "php"],
   "license": "MIT",
   "author": "Sonjj",
   "homepage": "https://github.com/mr-sonj/ptext-core/tree/main/packages/cli#readme",

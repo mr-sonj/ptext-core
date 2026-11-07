@@ -1,7 +1,7 @@
 {
   "name": "@ptext/core",
   "version": "0.3.0",
-  "description": "Deterministic text tools (extract, clean, columns, convert, encode, format) + local profiler. Zero dependencies; runs in browser, Cloudflare Workers, Node, Deno, Bun.",
+  "description": "Deterministic text tools: remove duplicate lines, CSV to JSON, extract emails, URLs, domains and IPs, clean lines, split columns, Base64/URL decode, JSON format and validate. Zero dependencies; runs in browser, Cloudflare Workers, Node, Deno, Bun.",
   "type": "module",
   "engines": { "node": ">=22" },
   "sideEffects": false,
@@ -18,7 +18,7 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
-  "keywords": ["text", "extract", "csv", "json", "base64", "mcp", "cloudflare-workers"],
+  "keywords": ["text", "text-tools", "text-processing", "remove-duplicates", "dedupe", "csv", "csv-to-json", "json", "json-formatter", "json-validator", "extract-emails", "email-extractor", "url-extractor", "clean-text", "base64", "url-encode", "deterministic", "zero-dependency", "browser", "cloudflare-workers"],
   "license": "MIT",
   "author": "Sonjj",
   "homepage": "https://github.com/mr-sonj/ptext-core/tree/main/packages/core#readme",

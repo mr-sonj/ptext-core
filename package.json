@@ -3,7 +3,7 @@
   "version": "0.3.0",
   "private": true,
   "type": "module",
-  "description": "PText core — Paste anything. Get clean data. Deterministic text tools for browser, Workers, Node, MCP and AI apps.",
+  "description": "PText: paste text, get a useful result. Deterministic text tools (remove duplicate lines, CSV to JSON, extract emails, JSON formatter, clean text) as a library, CLI and MCP server.",
   "engines": {
     "node": ">=22"
   },
